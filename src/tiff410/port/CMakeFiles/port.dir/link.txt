@@ -1,2 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc libport.a CMakeFiles/port.dir/dummy.c.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib libport.a
