@@ -1,0 +1,130 @@
+Performing C SOURCE FILE Test HAVE_LD_VERSION_SCRIPT failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_abfa6/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_abfa6.dir/build.make CMakeFiles/cmTC_abfa6.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_abfa6.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing -DHAVE_LD_VERSION_SCRIPT -Wl,--version-script=/Users/andreas/Moln/GitHub/rcell2/src/tiff410/conftest.map -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_abfa6.dir/src.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/src.c
+clang: warning: -Wl,--version-script=/Users/andreas/Moln/GitHub/rcell2/src/tiff410/conftest.map: 'linker' input unused [-Wunused-command-line-argument]
+Linking C executable cmTC_abfa6
+/usr/local/Cellar/cmake/3.18.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_abfa6.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing -DHAVE_LD_VERSION_SCRIPT -Wl,--version-script=/Users/andreas/Moln/GitHub/rcell2/src/tiff410/conftest.map -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_abfa6.dir/src.c.o -o cmTC_abfa6 
+ld: unknown option: --version-script=/Users/andreas/Moln/GitHub/rcell2/src/tiff410/conftest.map
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [cmTC_abfa6] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_abfa6/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+Source file was:
+int main(void){return 0;}
+Determining if the include file io.h exists failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_93e6c/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_93e6c.dir/build.make CMakeFiles/cmTC_93e6c.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_93e6c.dir/CheckIncludeFile.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_93e6c.dir/CheckIncludeFile.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:10: fatal error: 'io.h' file not found
+#include <io.h>
+         ^~~~~~
+1 error generated.
+make[2]: *** [CMakeFiles/cmTC_93e6c.dir/CheckIncludeFile.c.o] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_93e6c/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+
+Determining if the jbg_newlen exist failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_fe3a4/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_fe3a4.dir/build.make CMakeFiles/cmTC_fe3a4.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_fe3a4.dir/CheckSymbolExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_fe3a4.dir/CheckSymbolExists.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckSymbolExists.c:2:10: fatal error: 'jbig.h' file not found
+#include <jbig.h>
+         ^~~~~~~~
+1 error generated.
+make[2]: *** [CMakeFiles/cmTC_fe3a4.dir/CheckSymbolExists.c.o] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_fe3a4/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+File /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <jbig.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef jbg_newlen
+  return ((int*)(&jbg_newlen))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the include file GL/gl.h exists failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_f9e6d/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_f9e6d.dir/build.make CMakeFiles/cmTC_f9e6d.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_f9e6d.dir/CheckIncludeFile.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_f9e6d.dir/CheckIncludeFile.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:10: fatal error: 'GL/gl.h' file not found
+#include <GL/gl.h>
+         ^~~~~~~~~
+1 error generated.
+make[2]: *** [CMakeFiles/cmTC_f9e6d.dir/CheckIncludeFile.c.o] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_f9e6d/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+
+Determining if the include file GL/glu.h exists failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_e7da2/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_e7da2.dir/build.make CMakeFiles/cmTC_e7da2.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e7da2.dir/CheckIncludeFile.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_e7da2.dir/CheckIncludeFile.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:10: fatal error: 'GL/glu.h' file not found
+#include <GL/glu.h>
+         ^~~~~~~~~~
+1 error generated.
+make[2]: *** [CMakeFiles/cmTC_e7da2.dir/CheckIncludeFile.c.o] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_e7da2/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+
+Determining if the include file GL/glut.h exists failed with the following output:
+Change Dir: /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/opt/local/bin/gmake cmTC_373c2/fast && gmake[1]: Entering directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+make  -f CMakeFiles/cmTC_373c2.dir/build.make CMakeFiles/cmTC_373c2.dir/build
+make[2]: Entering directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_373c2.dir/CheckIncludeFile.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -Wall -Winline -W -Wformat-security -Wpointer-arith -Wdisabled-optimization -Wno-unknown-pragmas -Wdeclaration-after-statement -fstrict-aliasing  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -o CMakeFiles/cmTC_373c2.dir/CheckIncludeFile.c.o -c /Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:10: fatal error: 'GL/glut.h' file not found
+#include <GL/glut.h>
+         ^~~~~~~~~~~
+1 error generated.
+make[2]: *** [CMakeFiles/cmTC_373c2.dir/CheckIncludeFile.c.o] Error 1
+make[2]: Leaving directory `/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:140: cmTC_373c2/fast] Error 2
+gmake[1]: Leaving directory '/Users/andreas/Moln/GitHub/rcell2/src/tiff410/CMakeFiles/CMakeTmp'
+
+
+

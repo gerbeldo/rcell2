@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/contrib/dbs/tiff-palette.c
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+tiffio.h
+/Users/andreas/Moln/GitHub/rcell2/src/tiff410/contrib/dbs/tiffio.h
+
+libtiff/tiff.h
+tiffconf.h
+libtiff/tiffconf.h
+
+libtiff/tiffconf.h
+
+libtiff/tiffio.h
+tiff.h
+libtiff/tiff.h
+tiffvers.h
+libtiff/tiffvers.h
+windows.h
+-
+stdio.h
+-
+stdarg.h
+-
+
+libtiff/tiffvers.h
+
