@@ -219,7 +219,7 @@ void CellID(int * argc0, char *argv[], int* out){
   double max_split_d_over_minor_t0,max_split_d_over_minor_save;
 
 
-  #define n_recomb_cuts_max 100
+#define n_recomb_cuts_max 100
   float recombination_cuts[n_recomb_cuts_max];
   int recombination_cuts_type[n_recomb_cuts_max];
   int recombination_cuts_flag[n_recomb_cuts_max];
@@ -303,7 +303,7 @@ void CellID(int * argc0, char *argv[], int* out){
   // rcell2 chunk: getopts option parser
   opterr = 0;  // https://stackoverflow.com/a/24331449/11524079
   optind = 1;  // https://stackoverflow.com/a/25937743/11524079
-  
+
   while((opt = getopt(argc, argv, "p:b:f:o:")) != -1) {
     printf("Parsing getopt options\n");
     switch(opt) {
@@ -312,29 +312,29 @@ void CellID(int * argc0, char *argv[], int* out){
        printf("%s\n", optarg);
       param_file=optarg;
       break;
-      
+
     case 'b':
        printf("brightfield: ");
        printf("%s\n", optarg);
       bright_list_file=optarg;
       break;
-      
+
     case 'f':
        printf("fluorescence: ");
        printf("%s\n", optarg);
       fluor_list_file=optarg;
       break;
-      
+
     case 'o':
        printf("output_prefix: ");
        printf("%s\n", optarg);
       output_basename=optarg;
       break;
-      
+
     case ':':
        printf("option needs a value\n");
       break;
-      
+
     case '?':
        printf("unknown option: ");
        printf("%c\n", optopt);
@@ -350,7 +350,7 @@ void CellID(int * argc0, char *argv[], int* out){
       printf("%s ", argv[optind++]);
       printf("\n");
   }
-
+ 
   // rcell2 chunk
   // Print the final value of  parsed arguments
   printf("bright_list_file: %s\n", bright_list_file);
@@ -1087,7 +1087,11 @@ void CellID(int * argc0, char *argv[], int* out){
     }
   }
 
-  void free(void *ptr); // rcell2 declaration
+  void free(void *ptr); // rcell2: declaration for replacing g_free
+  // https://developer.gnome.org/glib/stable/glib-Memory-Allocation.html#g-free
+  // https://github.com/GNOME/glib/blob/master/glib/gmem.c
+  // https://developer.gnome.org/glib/stable/glib-Basic-Types.html#gpointer
+  // https://stackoverflow.com/a/20297598/11524079
 
   //Do a comparison of names to see if we should give the different
   //fluorescence files different flags.
@@ -1096,13 +1100,14 @@ void CellID(int * argc0, char *argv[], int* out){
   flag[0]=0;
   for(i=1;i<n_fluor;i++){
 		//V1.4a file names can have paths
-    file_basename = basename(fluor_files[i]);
+ 		file_basename= basename(fluor_files[i]);
 		c0=(file_basename)[0];
     c1=(file_basename)[1];
     c2=(file_basename)[2];
+  	// free(file_basename);  // rcell2: g_free replacement, not necessary https://stackoverflow.com/a/20297598/11524079
 		flag[i]=flag[i-1]+1; //Default to new flag
     for(j=0;j<i;j++){//Look for a match among previous files
-      file_basename= basename(fluor_files[j]);
+			file_basename= basename(fluor_files[j]);
     	if (
 	     (((file_basename)[0])==c0)&&
 	     (((file_basename)[1])==c1)&&
@@ -1111,6 +1116,7 @@ void CellID(int * argc0, char *argv[], int* out){
 	       flag[i]=flag[j]; //Found a match
 	       break;
       }
+    	// free(file_basename);  // rcell2: g_free replacement, not necessary https://stackoverflow.com/a/20297598/11524079
 		}
   }
   //Print out message if we have different flags set.
@@ -1339,7 +1345,7 @@ void CellID(int * argc0, char *argv[], int* out){
 	      }
 	      if((third_image=get_data_from_tif_file(third_files[third_cur],0,dark,
 				                                         &xmax_new,&ymax_new))==NULL){
-          printf("Couldn't open tif file %s.\n",third_files[third_cur]);
+	        printf("Couldn't open tif file %s.\n",third_files[third_cur]);
           perror("Error! 12");
           return;
 	      }
@@ -1484,7 +1490,7 @@ void CellID(int * argc0, char *argv[], int* out){
     	if((bf=get_data_from_tif_file(phase_files[j_cur],0,NULL,&xmax_new,&ymax_new))==NULL){
     	  printf("Couldn't open tif file %s.\n",phase_files[j_cur]);
         perror("Error! 14");
-        free(bf);
+	  		free(bf);
         return;
       }
       if ((xmax!=xmax_new)||(ymax!=ymax_new)){
@@ -1859,7 +1865,7 @@ void CellID(int * argc0, char *argv[], int* out){
   }  
   
   if (bf_fl_file!=NULL)fclose(bf_fl_file);
-
+  
   printf("\nCellID is done! :)\n");
 
   out[0] = 1; 
