@@ -1,6 +1,23 @@
 # rcell2
 functions to analyze Cell-ID data in a tidy framework
 
+## Branch notes
+
+Important commits
+
+### Cell lables
+
+"labeling cells is now optional" 9d129f8a996dccee46137c98c9aaea7fee105935
+
+"make the labeling setting available in cell()" b147442eee6e70618b3a3cefbb8d3faff091828f
+
+### Masks and cell boundary intensity
+
+"it works with hardcoded blank.tif file" 6987c4cc57dcfb6e68eb17534763f36e9ee1fa90
+
+"blank with 0 also works; added some comments and debug messa…" 7986557011c8a439fe3e37d9a756c33511a9aa78
+
+"label max intensity test successful" aac4cf7dcd8f53bcc2cc3f6752ad515134198f17
 
 # Installation
 
