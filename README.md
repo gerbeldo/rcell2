@@ -1,6 +1,9 @@
 # rcell2
 functions to analyze Cell-ID data in a tidy framework
 
+## Branch notes
+
+Remove CellID labels on images: see commit 821545db5bb6a127917ed0c612f6129a6f3ca887
 
 # Installation
 
