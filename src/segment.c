@@ -90,21 +90,21 @@ End-copyright-notice-for-Libtiff
 #define ccd_floor 128.0
 #define ccd_floorp1 129.0
 
-int xmax,ymax;
-int xmax_ymax;
+int xmax,ymax;    // Note: made static on contiguous.c
+int xmax_ymax;    // Note: these were made static on contiguous.c
 
 // declare locally thsese "extern" variables from header files, because the compiler failed
-int nucleus_radii[6];              // will this help with: cellMagick.so: undefined symbol: nucleus_radii ??
-int image_type;                    // it seems to help and be harmless: https://stackoverflow.com/questions/36040861/multiple-definitions-of-a-global-variable
-double max_d_over_s_cut;
-int max_pixels_per_cell;
-int min_pixels_per_cell;
-double max_split_d_over_minor;
-double background_reject_factor;
-int recalculate_internal;
-double I_over_U_for_match;
-int overall_id_offset;
-int third_image_type;
+int nucleus_radii[6];              // from parameters.h - will this help with: cellMagick.so: undefined symbol: nucleus_radii ??
+double max_d_over_s_cut;           // from parameters.h
+int max_pixels_per_cell;           // from parameters.h
+int min_pixels_per_cell;           // from parameters.h
+double max_split_d_over_minor;     // from parameters.h
+double background_reject_factor;   // from parameters.h
+double I_over_U_for_match;         // from parameters.h
+int recalculate_internal;          // from image_type.h
+int overall_id_offset;             // from image_type.h
+int third_image_type;              // from image_type.h
+int image_type;                    // from image_type.h - it seems to help and be harmless: https://stackoverflow.com/questions/36040861/multiple-definitions-of-a-global-variable
 // end declare locally
 
 //Global Arrays
@@ -6132,14 +6132,14 @@ void add_boundary_points_to_data(struct point *p_in){
   int a,b,a2,b2;
 
   int border;
-  border=found_border;  // tif_routines.h says: #define found_border 5
 
   struct point *p_start;
 
   //Add boundary points for border list p_in.
   //if p_in==NULL then do all n_found borders.
   //add found_border to d[] array in appropriate place.
-
+  
+  border=found_border;  // tif_routines.h says: #define found_border 5
   p_start=p_in;
   //for(i=0;i<xmax_ymax;i++)d[i]=0;
   for(i=0;i<n_found;i++){

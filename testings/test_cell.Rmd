@@ -10,10 +10,10 @@ output: html_document
 ```{r build, eval=FALSE, message=FALSE, warning=TRUE}
 
 devtools::document()
-devtools::load_all(recompile = T, reset = T)
-# devtools::install(reload = T, build = T,
-#                   quiet = T,
-#                   upgrade = "never", keep_source = T)
+# devtools::load_all(recompile = T, reset = T)
+devtools::install(reload = T, build = T,
+                  quiet = T,
+                  upgrade = "never", keep_source = T)
 ```
 
 
@@ -21,7 +21,7 @@ devtools::load_all(recompile = T, reset = T)
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
-# library(rcell2)
+library(rcell2)
 ```
 
 # Setup
@@ -72,22 +72,22 @@ path <- "../data/time_series_image_sample/"
 path <- "../data/time_series_image_samples_2/"
 parameters <- "../inst/parameters.txt"
 
-cell.args <- rcell2::cellArgs(path = path,
-                              parameters = parameters,
-                              BF.pattern = "BF_Position\\d+_time\\d+\\.tif$",
-                              FP.pattern = "FP_Position\\d*_time\\d+\\.tif$",
-                              O.pattern = ".*(Position\\d+)_time\\d+\\.tif"
-                              )
+cell.args <- cellArgs(path = path,
+                      parameters = parameters,
+                      BF.pattern = "BF_Position\\d+_time\\d+\\.tif$",
+                      FP.pattern = "FP_Position\\d*_time\\d+\\.tif$",
+                      O.pattern = ".*(Position\\d+)_time\\d+\\.tif"
+                      )
 
-rcell2::cellArgs.print(cell.args)  # Para revisar inputs
+cellArgs.print(cell.args)  # Para revisar inputs
 ```
 
 ### Run cellid
 
 ```{r, eval = F}
 cell(cell.args = cell.args,
-     cell.command = "cellBUILTIN",
-     # cell.command = "~/Software/cellID-linux/cell",
+     # cell.command = "cellBUILTIN",
+     cell.command = "~/Software/cellID-linux/cell",
      position.time.pattern = "time\\d+",
      no_cores = 1, dry = F)
 ```
