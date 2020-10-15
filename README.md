@@ -4,6 +4,14 @@ Functions to analyze Cell-ID single-cell cytometry data in a tidy and shiny fram
 
 It also magically builds and wraps the original CellID program into the package!
 
+# BUGS
+
+Using "builtin" CellID does not work correctly, emitting a warning: `Chose a list that had no previous elements!!!`
+
+See issue: https://github.com/darksideoftheshmoo/rcell2/issues/23
+
+This does not happen when using an external cellid binary. Use this in the meantime.
+
 # Installation
 
 ## Dependencies

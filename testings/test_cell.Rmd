@@ -34,6 +34,14 @@ parameters <- "../inst/parameters.txt"
 difference <- function(lista) abs(lista[1] - lista[2])
 ```
 
+# BUGS
+
+Using "builtin" CellID does not work correctly, emitting a warning: `Chose a list that had no previous elements!!!`
+
+See issue: https://github.com/darksideoftheshmoo/rcell2/issues/23
+
+This does not happen when using an external cellid binary. Use this in the meantime.
+
 # Ejemplo de uso
 
 ## Sin tiempo
