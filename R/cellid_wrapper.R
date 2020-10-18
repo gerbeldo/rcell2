@@ -637,7 +637,7 @@ cell2 <- function(arguments,
   for(d in unique(arguments$output)) dir.create(d)
   
   # Run CellID
-  if(is.null(no_cores)) no_cores <- min(round(detectCores()/2), 1)  # Problema rarísimo: se repiten rows cada "no_cores" posiciones
+  if(is.null(no_cores)) no_cores <- parallel::detectCores() - 1  # Problema rarísimo: se repiten rows cada "no_cores" posiciones
   cl <- parallel::makeCluster(
     min(n_positions,
         no_cores), 

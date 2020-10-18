@@ -96,7 +96,8 @@ cellArgs.print(cell.args)  # Para revisar inputs
 ### Generar arguments
 
 ```{r}
-path <- "~/Software/cellID-linux/test_data/"
+# path <- "~/Software/cellID-linux/test_data/"
+path <- "/run/media/nicomic/PENDRIVE/"
 parameters <- "/run/media/nicomic/PENDRIVE/parameters_hu.txt"
 
 arguments <- 
@@ -110,7 +111,7 @@ arguments
 ```{r}
 rcell2::cell2(arguments = arguments, 
               cell.command = system.file("cell", package = "rcell2", mustWork = T),
-              dry = T)
+              dry = F, no_cores = 1)
 ```
 
 
