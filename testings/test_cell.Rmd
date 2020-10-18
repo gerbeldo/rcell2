@@ -91,7 +91,30 @@ cell.args <- cellArgs(path = path,
 cellArgs.print(cell.args)  # Para revisar inputs
 ```
 
-### Run cellid
+## Con nuevo arguments2
+
+### Generar arguments
+
+```{r}
+path <- "~/Software/cellID-linux/test_data/"
+parameters <- "/run/media/nicomic/PENDRIVE/parameters_hu.txt"
+
+arguments <- 
+    rcell2::cellArgs2(path = path, 
+                  parameters = parameters)
+arguments
+```
+
+### Correr CellID
+
+```{r}
+rcell2::cell2(arguments = arguments, 
+              cell.command = system.file("cell", package = "rcell2", mustWork = T),
+              dry = T)
+```
+
+
+## Run cellid
 
 ```{r, eval = F}
 cell(cell.args = cell.args,

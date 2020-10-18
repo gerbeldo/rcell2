@@ -622,7 +622,7 @@ cell <- function(cell.args,
 #' @importFrom purrr map
 #' @export
 cell2 <- function(arguments,
-                  cell.command,
+                  cell.command = NULL,
                   # cell.command = "cellBUILTIN",
                   # cell.command = "~/Software/cellID-linux/cell",
                   # cell.command = "~/Projects/Rdevel/rcell2/bin/cell",
@@ -660,6 +660,8 @@ cell2 <- function(arguments,
     write(x = paste0(arguments_pos$path, "/", arguments_pos$bf), file = bf_rcell2)
     write(x = paste0(arguments_pos$path, "/", arguments_pos$image), file = fl_rcell2)
     
+    if(is.null(cell.command)) cell.command <- system.file("cell", package = "rcell2", mustWork = T)
+    
     command <- paste(normalizePath(cell.command),
                      "-b", bf_rcell2,
                      "-f", fl_rcell2,
@@ -676,6 +678,8 @@ cell2 <- function(arguments,
   parallel::stopCluster(cl)
   
   print("Done, please examine logs above if anything seems strange :)")
+  print(sent_commands)
+  
   return(invisible(NULL))
 }
 

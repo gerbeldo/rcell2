@@ -4,7 +4,7 @@
 \alias{cell2}
 \title{Function to run CellID}
 \usage{
-cell2(arguments, cell.command, no_cores = NULL, debug_flag = 0, dry = F)
+cell2(arguments, cell.command = NULL, no_cores = NULL, debug_flag = 0, dry = F)
 }
 \arguments{
 \item{arguments}{An argument data.frame, as built by rcell2::cellArgs2.}
