@@ -2,7 +2,7 @@
 % Please edit documentation in R/cellid_wrapper.R
 \name{cellArgs}
 \alias{cellArgs}
-\title{Filtrar cdata usando gráficos y dibujando regiones}
+\title{Obtener argumentos para CellID}
 \usage{
 cellArgs(
   path,
@@ -30,5 +30,5 @@ cellArgs(
 Nothing.
 }
 \description{
-Filtrar cdata usando gráficos y dibujando regiones
+Obtener argumentos para CellID
 }

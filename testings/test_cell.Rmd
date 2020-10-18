@@ -8,7 +8,6 @@ output: html_document
 # Rebuild and reload
 
 ```{r build, eval=FALSE, message=FALSE, warning=TRUE}
-
 devtools::document()
 # devtools::load_all(recompile = T, reset = T)
 devtools::install(reload = T, build = T,
@@ -76,9 +75,11 @@ cell(cell.args = cell.args,
 ### Generate CellID input paths
 
 ```{r}
-path <- "../data/time_series_image_sample/"
-path <- "../data/time_series_image_samples_2/"
-parameters <- "../inst/parameters.txt"
+# path <- "../data/time_series_image_sample/"
+# path <- "../data/time_series_image_samples_2/"
+# path <- "/run/media/nicomic/PENDRIVE/"
+path <- "~/Software/cellID-linux/test_data/"
+parameters <- "/run/media/nicomic/PENDRIVE/parameters_hu.txt"
 
 cell.args <- cellArgs(path = path,
                       parameters = parameters,
@@ -95,9 +96,10 @@ cellArgs.print(cell.args)  # Para revisar inputs
 ```{r, eval = F}
 cell(cell.args = cell.args,
      # cell.command = "cellBUILTIN",
-     cell.command = "~/Software/cellID-linux/cell",
+     # cell.command = "~/Software/cellID-linux/cell",
+     cell.command = "~/Projects/Rdevel/rcell2/bin/cell.sh",
      position.time.pattern = "time\\d+",
-     no_cores = 1, dry = F)
+     no_cores = 1, dry = T)
 ```
 
 # Load and check cell data

@@ -72,7 +72,7 @@ cell.images.out <- function(path,
 }
 
 
-#' Filtrar cdata usando gráficos y dibujando regiones
+#' Obtener argumentos para CellID
 #'
 #' @param path directory where images are stored, full path.
 #' @param parameters absolute path to the parameters file.
@@ -100,6 +100,72 @@ cellArgs <- function(path,
   o <- cell.images.out(path, BF.pattern, O.pattern, out.dir)
 
   list(p=parameters, b=b, f=f, o=o)
+}
+
+#' Obtener argumentos para CellID
+#'
+#' @param path directory where images are stored, full path.
+#' @param parameters path to the parameters file or a data.frame with "pos" (position number) and "parameter" (path) columns.
+#' @param BF.pattern regex pattern to BF images.
+#' @param file.pattern regex pattern for all tif files, with one group for each of: c("ch", "pos", "t.frame")
+#' @param file.pattern.groups.order a character vector of components c("ch", "pos", "t.frame") with order corresponding to the order of groups in file.pattern
+#' @param out.dir name for output directories paths "out"
+#' @param tiff.ext regex pattern for the tif file extension
+#' @return a data.frame with all the information needed to run CellID
+# @examples
+# cell.args <- cellArgs(path = path)
+#' @export
+cellArgs2 <- function(path,
+                      parameters,
+                      BF.pattern = "^BF",
+                      file.pattern = "^(BF|[A-Z]FP)_Position(\\d+)_time(\\d+).tif$",
+                      file.pattern.groups.order = c("ch", "pos", "t.frame"),
+                      out.dir = "out",
+                      tiff.ext = "tif$"
+) {
+  
+  if(!identical(sort(file.pattern.groups.order), sort(c("ch", "pos", "t.frame")))) 
+    stop('file.pattern.groups.order must contain c("ch", "pos", "t.frame")')
+  
+  path <- normalizePath(path)
+  
+  pic_files <- dir(path, pattern = file.pattern)  
+  
+  pics_df <- data.frame(image = pic_files,
+                        path = path) %>% 
+    tidyr::extract(col = image, 
+                   into = file.pattern.groups.order,
+                   regex = file.pattern, 
+                   remove = F)
+  
+  arguments <- left_join(
+    pics_df %>% filter(str_detect(string = image,
+                                  pattern = BF.pattern, 
+                                  negate = T)),
+    
+    pics_df %>% filter(str_detect(string = image,
+                                  pattern = BF.pattern)) %>% 
+      dplyr::rename(bf = image) %>% select(pos, t.frame, bf),
+    by = c("pos", "t.frame")
+  )
+  
+  arguments <- arguments %>% 
+    mutate(output = paste0(path, "/Position", pos)) %>% 
+    mutate(pos = as.integer(pos),
+           t.frame = as.integer(t.frame)) %>% 
+    arrange(pos, t.frame)
+  
+  if(length(parameters) == 1) {arguments$parameters <- parameters} else{
+    arguments <- left_join(
+      arguments,
+      select(parameters, pos, parameters),
+      by = "parameters"
+    )
+  }
+  
+  arguments <- arguments %>% mutate(parameters = normalizePath(parameters))
+  
+  return(arguments)
 }
 
 
@@ -541,9 +607,81 @@ cell <- function(cell.args,
   return(commands)
 }
 
+#' Function to run CellID
+#'
+#' @param arguments An argument data.frame, as built by rcell2::cellArgs2.
+#' @param cell.command the CellID command, either "cellBUILTIN" for the builtin binary, a path to the binary executable (get if from https://github.com/naikymen/cellID-linux).
+#' @param no_cores Position-wise parallelization,internally capped to number of positions in cell.args.
+#' @param dry Do everything without actually running CellID.
+#' @param debug_flag Set to 0 to disable CellID printf messages.
+#' @return Nothing :) use rcell2::load_cell_data to get the results from the output at the images path
+# @examples
+# cell(cell.args, path = path)
+#' @import purrr dplyr stringr tidyr doParallel readr parallel
+#' @rawNamespace import(foreach, except = c("when", "accumulate"))
+#' @importFrom purrr map
+#' @export
+cell2 <- function(arguments,
+                  cell.command,
+                  # cell.command = "cellBUILTIN",
+                  # cell.command = "~/Software/cellID-linux/cell",
+                  # cell.command = "~/Projects/Rdevel/rcell2/bin/cell",
+                  no_cores = NULL, 
+                  debug_flag=0,
+                  dry = F){
+  
+  n_positions <- arguments$pos %>% unique() %>% length()
+  n_times <- arguments$t.frame %>% unique() %>% length()
+  
+  # Create output directories
+  for(d in unique(arguments$output)) dir.create(d)
+  
+  # Run CellID
+  if(is.null(no_cores)) no_cores <- min(round(detectCores()/2), 1)  # Problema rarísimo: se repiten rows cada "no_cores" posiciones
+  cl <- parallel::makeCluster(
+    min(n_positions,
+        no_cores), 
+    outfile = "/tmp/dopar.txt"
+  )
+  
+  doParallel::registerDoParallel(cl)
+  
+  sent_commands <- foreach::foreach(pos=1:n_positions) %dopar% {
+    
+    arguments_pos <- arguments[arguments$pos == pos,]
+    
+    bf_rcell2 <- tempfile(tmpdir = arguments_pos$output[1],
+                          fileext = ".txt",
+                          pattern = "bf_rcell2.")
+    fl_rcell2 <- tempfile(tmpdir = arguments_pos$output[1],
+                          fileext = ".txt",
+                          pattern = "fl_rcell2")
+    
+    write(x = paste0(arguments_pos$path, "/", arguments_pos$bf), file = bf_rcell2)
+    write(x = paste0(arguments_pos$path, "/", arguments_pos$image), file = fl_rcell2)
+    
+    command <- paste(normalizePath(cell.command),
+                     "-b", bf_rcell2,
+                     "-f", fl_rcell2,
+                     "-o", normalizePath(paste0(arguments_pos$output[1], "/out")),
+                     "-p", arguments_pos$parameters[1]
+                     )
+    
+    system(command = command, wait = T)
+    
+    print("---- Done with this position.")
+    command
+  }
+  
+  parallel::stopCluster(cl)
+  
+  print("Done, please examine logs above if anything seems strange :)")
+  return(invisible(NULL))
+}
+
 #' Pipe
 #'
-#' Put description here
+#' This is not a pipe
 #'
 #' @importFrom purrr %>%
 #' @name %>%
