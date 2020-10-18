@@ -667,7 +667,7 @@ cell2 <- function(arguments,
                      "-p", arguments_pos$parameters[1]
                      )
     
-    system(command = command, wait = T)
+    if(!dry) system(command = command, wait = T)
     
     print("---- Done with this position.")
     command

@@ -25,7 +25,7 @@
 all: cellid rbuildcleanup
 
 cellid: tiflibs
-	cd cellIDnoglib && autoreconf -fvi && ./configure && make -j2 && mv cell ../../bin/cell
+	cd cellIDnoglib && autoreconf -fvi && ./configure && make -j2 && mv cell ../../inst/cell
 
 # Note that each command is run independently, that's why all must have have a cd prepended.
 tiflibs:
