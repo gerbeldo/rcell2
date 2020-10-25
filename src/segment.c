@@ -905,7 +905,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
   if ((image_type==bright_field)||(image_type==confocal_transmission)
                                 ||(have_fret_image==1)){
     //Change background groups that are too small to cell_in
-    printf("\nTest 18\n");
+    printf("\nTest 18\n");fflush(stdout);
     (csearch->p)=NULL; //Use entire array
     (csearch->cut_behavior)=equal_to_labels;
     (csearch->label_array)=d;
@@ -949,7 +949,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   //Change cell_border groups that are too small to cell_in
   if(image_type!=hexagonal_grid){
-    printf("\nTest 19\n");
+    printf("\nTest 19\n");fflush(stdout);
     (csearch->p)=NULL; //Use entire array
     (csearch->cut_behavior)=equal_to_labels;
     (csearch->label_array)=d;
@@ -969,7 +969,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   }
 
-  printf("\nTest 20\n");
+  printf("\nTest 20\n");fflush(stdout);
   //Remove groups of white that are too small, and give the others
   //their own label
   (csearch->p)=NULL; //Use entire array
@@ -995,7 +995,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       n_cells++;
     }
   }
-  printf("\nTest 21\n");
+  printf("\nTest 21\n");fflush(stdout);
   //Treat each contiguous list of white cells as a potential cell.
   //We have the start of each location in the clist_x,clist_y arrays
   //in pixel_list[n_cells].  Now take each blob and make a border.
@@ -1071,7 +1071,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
 
   }
-  printf("\nTest 22\n");
+  printf("\nTest 22\n");fflush(stdout);
   //Calculate maximum of s/d where s is length along circumference
   //and d is distance between any two points.  If this is very high, it
   //means cell is pinched and we probably should split it into two cells.
@@ -1133,7 +1133,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       }
     }
   }
-  printf("\nTest 23\n");
+  printf("\nTest 23\n");fflush(stdout);
   //Check for bad fft's. (Note that I calculate fft again below.
   //The reason is that when I remove the cells I have to remove all
   //the global arrays associated with them. (I really should have all
@@ -1152,7 +1152,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
-  printf("\nTest 24\n");
+  printf("\nTest 24\n");fflush(stdout);
 
   //Calculate interior of each of these and remove cells that
   //overlap too much (We have to calculate interior[] lists up here
@@ -1175,16 +1175,16 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
-  printf("\nTest 25\n");
+  printf("\nTest 25\n");fflush(stdout);
 
   remove_overlaps();
 
-  printf("\nTest 26\n");
+  printf("\nTest 26\n");fflush(stdout);
 
   //Take care of FRET stuff comparing bottom and top, etc.
   if ((image_type==fret_bf_bottom_only)||
       (image_type==fret_bf_top_only)){
-    printf("\nTest 27\n");
+    printf("\nTest 27\n");fflush(stdout);
 
     //Only half the image has data
     //For this case, we simply copy all the cells we found
@@ -1215,13 +1215,13 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       n_found++; //Just made a copy
     }
   }else if (image_type==fret_bf_bottom_and_top){
-    printf("\nTest 28\n");
+    printf("\nTest 28\n");fflush(stdout);
     //Continue fret split image stuff if we're searching both top and
     //bottom separately for cells
     if (fret_region_use==lower_fret_region){
       fret_region_use=higher_fret_region;
       n_before_fret_copy=n_found; //To mark how many already found
-      printf("Number new cells found in lower region: %i\n",n_found);
+      printf("Number new cells found in lower region: %i\n",n_found);fflush(stdout);
       goto fret_loop;
     }
     //If we're here then we've already done two passes. We re-sort the
@@ -1230,7 +1230,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     //This will mark the cells as matches for later stuff.
 
     printf("Number new cells found in upper region: %i\n",
-	   n_found-n_before_fret_copy);
+	   n_found-n_before_fret_copy);fflush(stdout);
 
     for(recalc_fret_offsets_loop=0;recalc_fret_offsets_loop<1;
 	recalc_fret_offsets_loop++){
@@ -1332,14 +1332,14 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
       tmp=sum_xx-sum_x*sum_x;
       if (tmp>0.0){
-	printf("----->%e %e ",fret_mx,fret_bx);
+	printf("----->%e %e ",fret_mx,fret_bx);fflush(stdout);
 	fret_mx=(sum1_xy-sum_x*sum1_y)/tmp;
 	fret_bx=(-sum1_xy*sum_x+sum1_y*sum_xx)/tmp;
-	printf("----->%e %e\n",fret_mx,fret_bx);
-	printf("----->%e %e ",fret_my,fret_by);
+	printf("----->%e %e\n",fret_mx,fret_bx);fflush(stdout);
+	printf("----->%e %e ",fret_my,fret_by);fflush(stdout);
 	fret_my=(sum2_xy-sum_x*sum2_y)/tmp;
 	fret_by=(-sum2_xy*sum_x+sum2_y*sum_xx)/tmp;
-	printf("----->%e %e\n",fret_my,fret_by);
+	printf("----->%e %e\n",fret_my,fret_by);fflush(stdout);
       }
     }
     fflush(stdout);
@@ -1539,10 +1539,10 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
 
   }
-  printf("\nTest 29\n");
+  printf("\nTest 29\n");fflush(stdout);
 
   printf("-----> After comparison: Total lower=%i and total upper=%i\n",
-	 n_before_fret_copy,n_found-n_before_fret_copy);
+	 n_before_fret_copy,n_found-n_before_fret_copy);fflush(stdout);
 
   //Done with the top and bottom fret images.
 
@@ -1700,7 +1700,7 @@ void calculate_global_stats_from_interior_and_boundary(){
 
   //output_data_to_tif_file("test.tif",atest,xmax,ymax,NULL,0,16,0,"");
 
-  printf("\nTotal this time=%i.\n",n_found);
+  printf("\nTotal this time=%i.\n",n_found);fflush(stdout);
 
   //Test-test-test-test-asg-test-asg-test
   //for(i=0;i<xmax;i++){
@@ -2394,7 +2394,7 @@ void internal_structure(int flag,int flag2){
     printf("Internal structure using third image.\n");
   }else{
     array=fl;
-    printf("Internal structure using fluorescence image.\n");
+    printf("Internal structure using fluorescence image.\n");fflush(stdout);
   }
 
   for(i=nloop_low;i<nloop_high;i++){ //Loop over all the cells
@@ -2821,7 +2821,7 @@ void next_prev_fl_comparison(){
 
   }while((i!=offx)||(j!=offy));
 
-  printf("offset=(%i,%i)\n",offx,offy);
+  printf("next_prev_fl_comparison offset=(%i,%i)\n",offx,offy);fflush(stdout);
 
   //Now calculate a "significance" of the difference. Ie, calculate
   //delta/sigma pixel by pixel. Assume sigma=sqrt(N1+N2).
@@ -4121,14 +4121,14 @@ void background_level(int i_time){
   }
   if (have_fret_image==1){
     printf("Background in non-cells at time t=%i for region %i is %e.\n",
-	   i_time,fret_region,back_pixels[i_time]);
+	   i_time,fret_region,back_pixels[i_time]);fflush(stdout);
     if (fret_region==1){
       fret_region=2;
       goto start_fret_goto; //To do next fret region
     }
   }else{
     printf("Background in non-cells at time t=%i is %e (bin_width=%e).\n",
-	   i_time,back_pixels[i_time],bin_width);
+	   i_time,back_pixels[i_time],bin_width);fflush(stdout);
   }
 
   return;
@@ -4532,7 +4532,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
   int add_new_cell;
   float area;
 
-  printf("Number found: %i\n",n_found);
+  printf("Number found: %i\n",n_found);fflush(stdout);
 
   total_time++; //Keep track of how many pictures we've checked
   loop_total=n_known;
@@ -4546,7 +4546,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
   if(new_phase==1){ //Have a new image, do overlap search
     //Compare each current cell too all the known cells
 
-    printf("Comparing new cells to known cells.\n");
+    printf("Comparing new cells to known cells.\n");fflush(stdout);
 
     //Calculate an offset for the current image with the previous one
 
@@ -4632,7 +4632,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
     offset_i=-offset_i;
     offset_j=-offset_j;
 
-    printf("Offset from previous image: (%i,%i).\n",offset_i,offset_j);
+    printf("Offset from previous image: (%i,%i).\n",offset_i,offset_j);fflush(stdout);
     //We'll only use the offsets to calculate overlaps to match to cells
     //from previous image.
 
@@ -4686,7 +4686,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
 	      printf("The %ith cell in the current image isn't marked",i);
 	      printf("whether it's an original or a copy.\n");
 	      fflush(stdout);
-	      exit(0);
+	      perror("Error! in update_list_of_found_cells");  // exit(0);
       }
     }
     bnew->interior=interior[i];
@@ -4815,10 +4815,11 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
 	           printf("ERROR: Cell with ID %i exceeds the max amount in FRET type images\n", cs[j]->index);
 	           printf("This soft limit can be increased by changing the source code at segment.c\n");
 	           printf("Specifically, the line: #define fret_offset 1000\n");
+             fflush(stdout);
 	           perror("ERROR in segment.c");  // rcell2 addition
         	 }
 	        }
-						
+					fflush(stdout);
 	        if (cs[j]->x<0) continue; //A flag for removing cells
 	        for(b=cs[j];(b!=NULL)&&(b->i_time==i_t);b=b->prev);
 	        if(b==NULL){ //Should never happen

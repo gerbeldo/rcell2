@@ -173,7 +173,7 @@ void align_image(float *f, int xdim_in, int ydim_in, int flag){
 
   }
 
-  printf("Offset for new fluorescence image=(%i,%i)\n",offx,offy);
+  printf("Offset for new fluorescence image=(%i,%i)\n",offx,offy);fflush(stdout);
   offx_prev=offx;
   offy_prev=offy;
   
