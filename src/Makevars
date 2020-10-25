@@ -1,5 +1,7 @@
-CC=ccache clang -Qunused-arguments
-CXX=ccache clang++ -Qunused-arguments
+#CC=ccache clang -Qunused-arguments
+#CXX=ccache clang++ -Qunused-arguments
+CC=gcc
+#CC = gcc -std=gnu99 -fsanitize=address -fno-omit-frame-pointer
 CCACHE_CPP2=yes
 
 # Include de archivos ".h"

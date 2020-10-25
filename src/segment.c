@@ -4804,10 +4804,13 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
 	        if (cs[j]->x<0) continue; //A flag for removing cells
 	        for(b=cs[j];(b!=NULL)&&(b->i_time==i_t);b=b->prev);
 	        if(b==NULL){ //Should never happen
-	          printf("Chose a list that had no previous elements!!!\n");
+	          printf("Chose a list that had NO previous elements!!!\n");
 	          printf("!!!!!!!!!! (i_t: %i, j: %i) !!!!!!!!!\n",i_t,j);
 	          break;
 	        }
+	        printf("Chose a list WITH a previous element:\n");
+	        printf("!!!!!!!!!! (i_t: %i, j: %i) !!!!!!!!!\n",i_t,j);
+
 	        isection=overlap(b->interior,offset_i,offset_j);
 	        uon=((b->n)+n_p) - isection; //union of points
 	        I_over_U=((float)isection)/((float)uon);
