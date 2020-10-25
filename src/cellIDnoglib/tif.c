@@ -36,23 +36,23 @@ contains the following copyright notice:
    "Copyright (c) 1988-1997 Sam Leffler
     Copyright (c) 1991-1997 Silicon Graphics, Inc.
 
-    Permission to use, copy, modify, distribute, and sell this software and 
+    Permission to use, copy, modify, distribute, and sell this software and
     its documentation for any purpose is hereby granted without fee, provided
     that (i) the above copyright notices and this permission notice appear in
     all copies of the software and related documentation, and (ii) the names
     of Sam Leffler and Silicon Graphics may not be used in any advertising or
     publicity relating to the software without the specific, prior written
-    permission of Sam Leffler and Silicon Graphics.  
+    permission of Sam Leffler and Silicon Graphics.
 
-    THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
-    EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
-    WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+    THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+    WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
     IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
     ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
     OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-    WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
-    LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+    WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF
+    LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
     OF THIS SOFTWARE."
 
 End-copyright-notice-for-Libtiff
@@ -81,10 +81,10 @@ End-copyright-notice-for-Libtiff
 //dark==NULL means no correction, otherwise points to an image to
 //subtract from the data.
 float *get_data_from_tif_file(char *file,
-			      int invert,
-			      float *dark,
-			      int *xmax_address,
-			      int *ymax_address){
+            int invert,
+            float *dark,
+            int *xmax_address,
+            int *ymax_address){
 
   TIFF *tif;
 
@@ -110,7 +110,7 @@ float *get_data_from_tif_file(char *file,
   //call below wants a pointer to an array, and I want to make sure
   //that it doesn't attempt to write to datatime_array[1] also.
   char *datetime_array[]={"abcdefghijklmnopqrstuvwxyz.",
-			  "abcdefghijklmnopqrstuvwxyz."};
+        "abcdefghijklmnopqrstuvwxyz."};
   char *datetime;
   int i;
   int xmax,ymax;
@@ -134,7 +134,7 @@ float *get_data_from_tif_file(char *file,
 
     //    printf("Photometric is %i.\n",photometric);
     //printf("Image Width and length in pixels = %i, %i\n",
-    //	   image_width,image_length);
+    //     image_width,image_length);
 
     xmax=image_width;
     ymax=image_length;
@@ -155,7 +155,7 @@ float *get_data_from_tif_file(char *file,
       printf("Unknown bits per pixel size: %i.\n",bitspersample);
       return NULL;
     }
-    
+
     TIFFGetField(tif,TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
     //printf("Rows per strip = %i\n",rowsperstrip);
 
@@ -169,25 +169,25 @@ float *get_data_from_tif_file(char *file,
       tmp_p=data_16;
 
       for(row=0;row<image_length;row++){
-	TIFFReadScanline(tif,buf,row,1);
-	memcpy(tmp_p,buf,scanline_size);
-	tmp_p+=xmax;
+  TIFFReadScanline(tif,buf,row,1);
+  memcpy(tmp_p,buf,scanline_size);
+  tmp_p+=xmax;
       }
 
     }else{
       data_8=(unsigned char *)malloc(xmax_ymax*sizeof(unsigned short));
       tmp_p8=data_8;
-      
+
       for(row=0;row<image_length;row++){
-	TIFFReadScanline(tif,buf,row,1);
-	memcpy(tmp_p8,buf,scanline_size);
-	tmp_p8+=xmax;
+  TIFFReadScanline(tif,buf,row,1);
+  memcpy(tmp_p8,buf,scanline_size);
+  tmp_p8+=xmax;
       }
 
     }
-    
+
     _TIFFfree(buf);
-    
+
     TIFFClose(tif);
   }
 
@@ -221,20 +221,21 @@ float *get_data_from_tif_file(char *file,
     for(i=0;i<xmax_ymax;i++){
       image_data[i]=array_max-image_data[i];
     }
-  } 
-  
+  }
+
   return image_data;
 }
 
 /******************************************************/
 int output_data_to_tif_file(char *file,
-			    float *output_data,
-			    int xmax_data,
-			    int ymax_data,
-			    int *labels,
-			    int type,
-			    int bit_size,
-			    int invert){
+                            float *output_data,
+                            int xmax_data,
+                            int ymax_data,
+                            int *labels,
+                            int type,
+                            int bit_size,
+                            int invert,
+                            int mask_output){
 
 
   //Output array output_data to a file.
@@ -242,7 +243,7 @@ int output_data_to_tif_file(char *file,
   //(xmax_data,ymax_data)=size of input array (ie, "output_data")
 
   //uint32 rowsperstrip=8;
-  uint32 planarconfig=1; 
+  uint32 planarconfig=1;
   uint16 bitspersample=8;
   uint32 image_width=xmax_data;
   uint16 photometric=1;
@@ -252,7 +253,7 @@ int output_data_to_tif_file(char *file,
 
   float array_max,array_min;
   float scale;
-  
+
   tdata_t data_buf;
 
   TIFF *tif;
@@ -269,7 +270,61 @@ int output_data_to_tif_file(char *file,
 
   int u;
 
+  //mask_mod
+  float intensity_max=xmax16;
+  float labels_max;
+  float intensity_offset=5000.0;
+
+  //Get max and min image pixel values
+  array_max=0.0;
+  array_min=1.0e15;
+  for(j=0;j<ymax_data;j++){
+    for(i=0;i<xmax_data;i++){
+      u=j*xmax_data+i;
+      if(output_data[u]>array_max)array_max=output_data[u];
+      if(output_data[u]<array_min)array_min=output_data[u];
+    }
+  }
+
+  // mask_mod: unique cell boundaries value will surely need enough bits.
+  // 8 bits (for 255 CellIDs) may not be enough.
+  if (mask_output==1 && type==0) {
+    bit_size=16;
+    labels_max=0.0;
+    // Get max labels value
+    if (labels!=NULL){
+      for(j=0;j<ymax_data;j++){
+        for(i=0;i<xmax_data;i++){
+          u=j*xmax_data+i;
+          if(labels[u]-cellid_offset>labels_max) labels_max=labels[u]-cellid_offset;
+        }
+      }
+    }
+
+    //array_max=65535.0;
+    //array_min=0.0;
+
+    // Calculate max allowed intensity value
+    // This ensures that image instensities are at least "intensity_offset"
+    // points from mask intensities.
+    intensity_max=intensity_max-(intensity_offset+labels_max);
+  }
+
+  //Calculate scale factor for pixel intensity normalization
+  if (array_max>array_min){
+    scale=1.0/(array_max-array_min);
+  }else{
+    scale=0.0;
+  }
+
   bitspersample=(uint16)bit_size;
+
+  //Value of one degree of grayness:
+  if (bitspersample==8){
+    onetmp=1.0/(scale*xmax8);
+  } else{
+    onetmp=1.0;
+  }
 
   tif=TIFFOpen(file,"w");
 
@@ -301,95 +356,102 @@ int output_data_to_tif_file(char *file,
     return 0;
   }
 
-  //Get max and min
-  array_max=0.0;
-  array_min=1.0e15;
+  //Loop over all pixels in image
   for(j=0;j<ymax_data;j++){
     for(i=0;i<xmax_data;i++){
+      //in bounds (get position in 1D-array corresponding to XY coordinate)
       u=j*xmax_data+i;
-      if(output_data[u]>array_max)array_max=output_data[u];
-      if(output_data[u]<array_min)array_min=output_data[u];
+      //Get pixel value
+      tmp=output_data[u];
+      //Convert data to 8 bit or 16 bit
+      if(invert==1){ //Flip values back from array_max-c[][]
+        if(tmp>0.0)tmp=array_max-tmp;
+      }
+
+      if (labels!=NULL){
+        //type determines what set of labels to write out
+        // "labels" corresponds to the "d" array in "add_boundary_points_to_data" (segment.c)
+        k=labels[u];
+        if (type==0){   // The default value for BF type and flat_cors is 0.
+          // As modified in segment.c, values of "k=labels[u]" >= cellid_offset
+          // should be cell boundary or interior points (a different value per
+          // cellID starting at cellid_offset).
+          if(k>=cellid_offset){
+            // mask_mod: Subtract cellid_offset from k to adjust for the offset
+            // defined in "add_points_to_data" to recover true cellID. Also add
+            // "1" since CellIDs are zero-indexed, and we want to reserve
+            // max_intensity for cell numbers.
+
+            // (1+k-cellid_offset) is then subtracted from xmax16 to ensure that
+            // mask points have the maximal image intensity values
+            tmp=xmax16-(1+k-cellid_offset);
+          }else if(k==found_border){
+            // mask_mod: this triggers when mask_output==0
+ 				    tmp=array_max;
+ 				  }else if(k==found_border_a){
+ 				    tmp=array_max-onetmp;
+ 				  }else if(k==found_border_b){
+ 				    tmp=array_max-(2.0*onetmp);
+ 				  }else if(k==found_border_c){
+ 				    tmp=array_max-(3.0*onetmp);
+ 				  }else if(k==found_border_d){
+ 				    tmp=array_max-(4.0*onetmp);
+ 				  }else if(k==found_border_e){
+ 				    tmp=array_max-(5.0*onetmp);
+ 				  }else if(k==found_border_f){
+ 				    tmp=array_max-(6.0*onetmp);
+ 				  }else if(k==found_border_g){
+ 				    tmp=array_max-(7.0*onetmp);
+          }else if(k==cell_label){
+            if(mask_output==1){
+              //mask_mod: set cell labels/numbers to max image value
+              tmp=xmax16;
+            } else{
+              //mask_mod: original output
+              tmp=array_max-(15.0*onetmp);
+            }
+          }else if(k==delete_pixel){
+				    tmp=array_min;
+          }else {
+            if(mask_output==1){
+              // mask_mod: sets image pixels (i.e., non-label pixels) to zero.
+              // this makes background black
+              //tmp=0.0
+
+              // mask_mod: scales image pixels (i.e., non-label pixels) such
+              // that their intensities range from 0 to "intensity_max".
+              tmp=(tmp-array_min)*scale*intensity_max;
+            }
+          }
+        }else if (type==1){                // The default value for FL type is 1
+          if(labels[u]==found_border){
+            tmp=array_max;
+          } else if(k>=cellid_offset){
+            tmp=array_max-(k-cellid_offset)*onetmp;
+          }
+
+        }else if (type==2){                // The default value for third_image type is 2
+          if(labels[u]==found_border){
+            tmp=array_max;
+          }else if (labels[u]==cell_nucleus){
+            tmp=array_max-5.0;
+          }
+        }
+      }
+
+      if(bitspersample==8){
+        *(p_char+i)=(unsigned char) ((tmp-array_min)*scale*xmax8);
+      }else{
+        if (tmp<0.0) tmp=0.0;
+        if(tmp>xmax16)tmp=xmax16;
+        *(p_short+i)=(unsigned short) tmp;
+        //Original is assumed to be 16-bit data, so just replace it here.
+      }
     }
-  }
-  if (array_max>array_min){
-    scale=1.0/(array_max-array_min);
-  }else{
-    scale=0.0;
-  }
-  
-  //Value of one degree of grayness:
-  onetmp=1.0;
-  if (bitspersample==8){
-    onetmp=1.0/(scale*xmax8);
+    TIFFWriteScanline(tif,data_buf,j,1);
   }
 
-  for(j=0;j<ymax_data;j++){
-    for(i=0;i<xmax_data;i++){
-      //in bounds
-      u=j*xmax_data+i;
-      //Convert data to 8 bit or 16 bit
-      tmp=output_data[u];
-      if(invert==1){ //Flip values back from array_max-c[][]
-	if(tmp>0.0)tmp=array_max-tmp;
-      }
-      if (labels!=NULL){
-	//type determines what set of labels to write out
-	k=labels[u];
-	if (type==0){
-	  if(k==found_border){
-	    tmp=array_max;
-	  }else if(k==found_border_a){
-	    tmp=array_max-onetmp;
-	  }else if(k==found_border_b){
-	    tmp=array_max-(2.0*onetmp);
-	  }else if(k==found_border_c){
-	    tmp=array_max-(3.0*onetmp);
-	  }else if(k==found_border_d){
-	    tmp=array_max-(4.0*onetmp);
-	  }else if(k==found_border_e){
-	    tmp=array_max-(5.0*onetmp);
-	  }else if(k==found_border_f){
-	    tmp=array_max-(6.0*onetmp);
-	  }else if(k==found_border_g){
-	    tmp=array_max-(7.0*onetmp);
-	  }else if(k==cell_label){
-	    tmp=array_max-(15.0*onetmp);
-	  }else if(k==delete_pixel){
-	    tmp=array_min;
-	  }
-	}else if (type==1){
-	  if(labels[u]==found_border){
-	    tmp=array_max;
-	    //tmp=8300.0;
-	  }
-	}else if (type==2){
-	  if(labels[u]==found_border){
-	    tmp=array_max;
-	  }else if (labels[u]==cell_nucleus){
-	    tmp=array_max-5.0;
-	  }
-	}
-      }
-      if(bitspersample==8){
-	*(p_char+i)=(unsigned char) ((tmp-array_min)*scale*xmax8);
-      }else{
-	if (tmp<0.0) tmp=0.0;
-	if(tmp>xmax16)tmp=xmax16;
-	*(p_short+i)=(unsigned short) tmp;
-	//Original is assumed to be 16-bit data, so just replace it here.
-      }
-    }
-    TIFFWriteScanline(tif,data_buf,j,1);    
-  }
-  
   TIFFClose(tif);
   free(data_buf);
   return 1;
 }
-
-
-
-
-
-
-
