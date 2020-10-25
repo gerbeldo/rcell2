@@ -100,8 +100,8 @@ cell2 <- function(arguments,
                       " -p ", arguments_pos$parameters[1],
                       {if(label_cells_in_bf) " -l" else ""},
                       {if(output_coords_to_tsv) " -t" else ""},
-                      {if(fill_interior_pixels) " -m -i" else ""},
-                      {if(encode_cellID_in_pixels) " -m" else ""}
+                      {if(encode_cellID_in_pixels) " -m" else ""},
+                      {if(fill_interior_pixels) {if(encode_cellID_in_pixels) " -i" else " -m -i"} else ""}
     )
     
     if(cell.command == "cellBUILTIN") {  # Run builtin CellID
