@@ -23,7 +23,8 @@ cellid <- function(args, debug_flag=0){
   
   if(exit_code != 1) stop(paste("CellID exited with error code:", exit_code))
   
-  return(exit_code)
+  print(paste("CellID finished and its exit code was:", exit_code))
+  return(invisible(exit_code))
 }
 
 #' Function to run CellID
@@ -103,8 +104,12 @@ cell2 <- function(arguments,
                       {if(encode_cellID_in_pixels) " -m" else ""}
     )
     
-    if(ignore.stdout) warning("Running CellID through a system call ignoring standard output messages (ignore.stdout = T). This is discouraged!")
-    if(!dry) system(command = command, wait = T, ignore.stdout = ignore.stdout)
+    if(cell.command == "cellBUILTIN") {  # Run builtin CellID
+      if(!dry) exit_code <- cellid(args = command, debug_flag = debug_flag)
+    } else {
+      if(ignore.stdout) warning("Running CellID through a system call ignoring standard output messages (ignore.stdout = T). This is discouraged!")
+      if(!dry) system(command = command, wait = T, ignore.stdout = ignore.stdout) 
+    }
     
     print("---- Done with this position.")
     command
