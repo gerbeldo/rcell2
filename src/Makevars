@@ -1,6 +1,13 @@
-#CC=ccache clang -Qunused-arguments
+# Original Makevars
+# CC=ccache clang -Qunused-arguments
+# CXX=ccache clang++ -Qunused-arguments
+# CCACHE_CPP2=yes
+# PKG_LIBS = -ltiff
+
+
+CC=ccache clang -Qunused-arguments
 #CXX=ccache clang++ -Qunused-arguments
-CC=gcc
+#CC=gcc
 #CC = gcc -std=gnu99 -fsanitize=address -fno-omit-frame-pointer
 CCACHE_CPP2=yes
 
@@ -9,7 +16,6 @@ CCACHE_CPP2=yes
 PKG_CPPFLAGS= -I./tiff410/libtiff
 # Links a archivos ".so" (las libraries)
 PKG_LIBS= -L./tiff410/r_build/libtiff -ltiff -ljpeg -llzma -lz
-
 MAKEFLAGS = -j4
 
 

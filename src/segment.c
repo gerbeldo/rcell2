@@ -487,21 +487,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   static int first=1;
 
-  //float *ftmp;
-  //float laplace[]=
-  //  {
-  //    0.0, 0.0, -1.0, 0.0, 0.0,
-  //    0.0, -1.0, -2.0, -1.0, 0.0,
-  //    -1.0, -2.0, 16.0, -2.0, -1.0,
-  //    0.0, -1.0, -2.0, -1.0, 0.0,
-  //    0.0, 0.0, -1.0, 0.0, 0.0
-  //  };
-  //int laplace_lims;
-  //int laplace_size=5;
-  //int ux,uy;
-  //int jlim;
-  //double r_dot_x,r_dot_y;
-  //double rmax,rmin;
+  printf("\nTest 1\n");
 
   int u;
 
@@ -530,6 +516,8 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
+  printf("\nTest 2\n");
+
   *boundary_out=NULL; //to default to
   *interior_out=NULL;
 
@@ -554,6 +542,8 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     //x-projection only
     flatten_image(c,xmax,ymax,overwrite_image,x_only,nonlinear);
   }
+
+  printf("\nTest 3\n");
 
   //Which region of BF to use. (If we're doing bottom and top, then
   //start with bottom.)
@@ -597,6 +587,8 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   }
 
+  printf("\nTest 4\n");
+
   n_found=0;
 
   for(i=0;i<max_cells;i++){
@@ -611,6 +603,8 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   n_before_fret_copy=0;
 
+  printf("\nTest 5\n");
+
   //Set a marker for doing fret_region_use=lower_ and then higher_fret_region
   //(Note n_found will continue to be incremented on second pass.
  fret_loop:
@@ -623,14 +617,18 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
+  printf("\nTest 6\n");
+
   //Calculate cut to put on the data for the searching
   if((image_type==bright_field)||(image_type==confocal_transmission)
                                ||(have_fret_image==1)){
+    printf("\nTest 7\n");
     calculate_cut();
     smallest_white_area=75;
     smallest_circumference=(float)sqrt(((double)smallest_white_area)/3.14159)
       *2.0*3.14159;
   }else if(image_type==metamorph_deconvolution){
+    printf("\nTest 8\n");
     //Deconvolution case, calculate cut differently
     //We're going to vary the low cut and keep track of the number of very
     //small contiguous regions and the number of normal ones.  We're going to
@@ -703,6 +701,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       *2.0*3.14159;
 
   }else if(image_type==hexagonal_grid){
+    printf("\nTest 9\n");
     //We have a giant hexagonal grid.  Use a fourier transform to pick
     //it out.
 
@@ -789,9 +788,12 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     printf("Cut=%e\n",cut_high);
 
   }else if(image_type==membrane_tagged_fl){
+    printf("\nTest 10\n");
     //Nothing yet....
     //TODO
   } //end of cut calculation for different image types
+
+  printf("\nTest 11.1\n");
 
   printf("BF-cut-low=%e, BF-cut-high=%e\n",cut_low,cut_high);fflush(stdout);
   //Now, the cells are surrounded by a dark region and inside the cells is
@@ -809,11 +811,13 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   //Change the behavior of the contiguous search to use the
   //integer array d[]
+  printf("\nTest 11.2\n");fflush(stdout);
 
   (csearch->label_array)=d;
   (csearch->cut_behavior)=equal_to_labels;
   (csearch->p)=NULL; //No point list means use entire image
 
+  printf("\nTest 12\n");fflush(stdout);
   //If we have a deconvolution image then the border regions might be set
   //to 0.  If this is the case, then we don't want "half-cells" that get
   //cut off by the border region.  To prevent the program from picking them
@@ -823,10 +827,12 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
   //in the border region and then remove them.
   if((image_type==bright_field)||(image_type==confocal_transmission)
                                ||(have_fret_image==1)){
+    printf("\nTest 13\n");fflush(stdout);
     //V1.2a TODO hard coded!
     max_size=1000; //Normal case, inside cells has some noise, use this
     //to set some noise regions to be "inside cells"
   }else if(image_type==metamorph_deconvolution){ //deconvolution case
+    printf("\nTest 14\n");fflush(stdout);
     max_size=1000;
 
     for(k=0;k<xmax;k++){
@@ -862,10 +868,11 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 	      }
       }
     }
-
+    printf("\nTest 15\n");fflush(stdout);
     done_square_loop:
 
     if (k>0) {
+      printf("\nTest 16\n");fflush(stdout);
       //Find all contiguous "cell_in" pixels starting in this border region.
       (csearch->p)=point_malloc();
       (csearch->p)->i=0;
@@ -890,6 +897,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
 
   }else{
+    printf("\nTest 17\n");fflush(stdout);
     max_size=100000;
   }
 
@@ -897,7 +905,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
   if ((image_type==bright_field)||(image_type==confocal_transmission)
                                 ||(have_fret_image==1)){
     //Change background groups that are too small to cell_in
-
+    printf("\nTest 18\n");
     (csearch->p)=NULL; //Use entire array
     (csearch->cut_behavior)=equal_to_labels;
     (csearch->label_array)=d;
@@ -941,7 +949,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   //Change cell_border groups that are too small to cell_in
   if(image_type!=hexagonal_grid){
-
+    printf("\nTest 19\n");
     (csearch->p)=NULL; //Use entire array
     (csearch->cut_behavior)=equal_to_labels;
     (csearch->label_array)=d;
@@ -961,7 +969,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
 
   }
 
-
+  printf("\nTest 20\n");
   //Remove groups of white that are too small, and give the others
   //their own label
   (csearch->p)=NULL; //Use entire array
@@ -987,7 +995,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       n_cells++;
     }
   }
-
+  printf("\nTest 21\n");
   //Treat each contiguous list of white cells as a potential cell.
   //We have the start of each location in the clist_x,clist_y arrays
   //in pixel_list[n_cells].  Now take each blob and make a border.
@@ -1063,7 +1071,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
 
   }
-
+  printf("\nTest 22\n");
   //Calculate maximum of s/d where s is length along circumference
   //and d is distance between any two points.  If this is very high, it
   //means cell is pinched and we probably should split it into two cells.
@@ -1125,7 +1133,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       }
     }
   }
-
+  printf("\nTest 23\n");
   //Check for bad fft's. (Note that I calculate fft again below.
   //The reason is that when I remove the cells I have to remove all
   //the global arrays associated with them. (I really should have all
@@ -1144,6 +1152,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
+  printf("\nTest 24\n");
 
   //Calculate interior of each of these and remove cells that
   //overlap too much (We have to calculate interior[] lists up here
@@ -1166,11 +1175,17 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
   }
 
+  printf("\nTest 25\n");
+
   remove_overlaps();
+
+  printf("\nTest 26\n");
 
   //Take care of FRET stuff comparing bottom and top, etc.
   if ((image_type==fret_bf_bottom_only)||
       (image_type==fret_bf_top_only)){
+    printf("\nTest 27\n");
+
     //Only half the image has data
     //For this case, we simply copy all the cells we found
     //in the bottom or top part of the image to the opposte part.
@@ -1200,6 +1215,7 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
       n_found++; //Just made a copy
     }
   }else if (image_type==fret_bf_bottom_and_top){
+    printf("\nTest 28\n");
     //Continue fret split image stuff if we're searching both top and
     //bottom separately for cells
     if (fret_region_use==lower_fret_region){
@@ -1523,6 +1539,8 @@ int find_cells(struct point ***boundary_out,struct point ***interior_out){
     }
 
   }
+  printf("\nTest 29\n");
+
   printf("-----> After comparison: Total lower=%i and total upper=%i\n",
 	 n_before_fret_copy,n_found-n_before_fret_copy);
 
