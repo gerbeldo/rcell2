@@ -1,0 +1,221 @@
+---
+title: "CellID Wrapper Test 3"
+author: "Nicolás Méndez"
+date: "7/20/2020"
+output: html_document
+---
+
+# Rebuild
+
+```{r build, eval=FALSE, message=FALSE, warning=TRUE}
+devtools::document()
+devtools::load_all(recompile = T, reset = T)
+devtools::install(reload = T, build = T,
+                  # quiet = T,
+                  upgrade = "never", keep_source = T)
+```
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(rcell2)
+```
+
+# Run cellid mask_mod
+
+## Con series temporales
+
+```{r}
+path <- "../data/time_seres_images_hu_moments/"
+parameters <- "../inst/parameters.txt"
+```
+
+## Generate CellID input paths
+
+```{r}
+arguments <- rcell2::cellArgs2(path = path, parameters = parameters)
+arguments
+```
+
+### Correr CellID
+
+```{r}
+rcell2::cell2(arguments = arguments, 
+              cell.command = "~/Software/cellID-linux/cell",
+              dry = F, no_cores = 1, label_cells_in_bf = T, output_coords_to_tsv = T)
+```
+
+# Load cell data
+
+```{r}
+cell_data <- rcell2::load_cell_data(path = path)
+```
+
+```{r}
+cdata <- cell_data$data
+paths <- cell_data$images %>% 
+    mutate(file = paste0(path, "/", image))
+```
+
+# All-in-one function
+
+```{r}
+cell_data <- rcell2::append_hues(cell_data = cell_data, 
+                                 return_points = T, 
+                                 image_bits = 16)
+
+rcell2:::check_tiff_mask(cell_data)
+```
+
+# Mask coords from new CellID "-m" option
+
+From new -m option
+
+```{r}
+masks <- read_tsv("../data/time_seres_images_hu_moments/Position01/out_all_masks.tsv")
+```
+
+## Chequear mascaras del TSV output
+
+```{r}
+p <- masks %>% 
+  filter(cellID == 3) %>%
+  filter(pixtype == "b") %>%
+  ggplot() + geom_tile(aes(x=x, y=y, fill = factor(t.frame))) + facet_grid(flag~pixtype)
+
+p
+```
+
+```{r}
+p <- masks %>% 
+  filter(cellID == 3) %>%
+  filter(pixtype == "b") %>%
+  ggplot() + geom_tile(aes(x=x, y=y, fill = factor(flag))) + facet_grid(t.frame~pixtype)
+
+p
+```
+```{r}
+masks %>% 
+  filter(cellID %in% c(14, 591), pixtype=="i", channel=="YFP") %>% 
+  ggplot() + 
+  geom_tile(aes(x=x,y=y,fill=factor(cellID))) + facet_grid(t.frame~flag)
+
+masks %>% 
+  filter(cellID %in% c(14, 591), pixtype=="b", channel=="YFP") %>% 
+  ggplot() + 
+  geom_tile(aes(x=x,y=y,fill=factor(cellID))) + facet_grid(t.frame~flag)
+
+cell_data$data %>%
+  filter(cellID %in% c(14, 591)) %>%
+  rcell2::magickCell(cell_data$images, cell_resize = 200, ch = "BF", annotation_params = NULL)
+cell_data$data %>%
+  filter(cellID %in% c(14, 591)) %>%
+  rcell2::magickCell(cell_data$images, cell_resize = 200, ch = "BF.out")
+```
+
+```{r}
+cids <- c(140)
+
+p <- masks %>% 
+  filter(cellID %in% cids, pixtype=="i", channel=="YFP") %>% 
+  ggplot() + 
+  geom_tile(aes(x=x,y=y,fill=factor(cellID))) + facet_grid(t.frame~flag)
+plotly::ggplotly(p)
+
+p <- masks %>% 
+  filter(cellID %in% cids, pixtype=="b", channel=="YFP") %>% 
+  ggplot() + 
+  geom_tile(aes(x=x,y=y,fill=factor(cellID))) + facet_grid(t.frame~flag)
+plotly::ggplotly(p)
+
+cell_data$data %>%
+  filter(cellID %in% cids) %>%
+  rcell2::magickCell(cell_data$images, cell_resize = 200, ch = "BF", annotation_params = NULL)
+cell_data$data %>%
+  filter(cellID %in% cids) %>%
+  rcell2::magickCell(cell_data$images, cell_resize = 200, ch = "BF.out")
+```
+
+## Develop new function to load TSV outputs
+
+```{r}
+flags_tsv_path <- c("../data/time_seres_images_hu_moments/Position01/out_bf_fl_mapping")
+
+flag_data <- function(cell_data, flags_tsv_path){
+  flags <- read_tsv(flags_tsv_path) %>% 
+    select(fluor, flag) %>% dplyr::rename(file = fluor)
+  
+  paths <- cell_data$images %>% 
+    mutate(file = paste0(path, "/", image))
+  
+  left_join(flags, paths, by = "file")
+}
+
+flag_data_df <- flag_data(cell_data, flags_tsv_path)
+
+flag_data_df
+```
+
+```{r}
+masks_tsv_path <- c("../data/time_seres_images_hu_moments/Position01/out_all_masks.tsv")
+masks <- read_tsv(masks_tsv_path) %>% 
+  left_join(unique(select(flag_data_df, flag, channel, pos)))
+
+masks
+```
+
+
+```{r}
+maks_from_m_option_tsv <- function(masks_df, position, .parallel = F){
+  # Add "id" column
+  masks_coords <- masks_df %>% 
+    mutate(id = paste(cellID, t.frame, flag, pixtype, sep = "_"))
+  
+  if(!.parallel) {
+    hues_df <- hues_from_xy(masks_coords, split_col="id")
+  } else {
+    print("Parallel Hu")
+    hues_df <- hues_from_xy2(masks_coords, split_col="id")
+  }
+  
+  hues_by_cell <- masks_coords %>% 
+    select(cellID, t.frame, flag, pixtype, id) %>% unique() %>%  # in test: 3208 rows
+    left_join(hues_df, by = "id") %>%                            # in test: 3208 rows too :)
+    select(-id) %>% mutate(pos = position)
+  
+  return(hues_by_cell)
+}
+
+hues_by_cell_df <- maks_from_m_option_tsv(masks_df = masks,
+                                          position = 1, .parallel = T)
+
+hues_by_cell_df
+```
+
+```{r}
+boundary_hues_tfp <- left_join(
+  hues_by_cell_df,
+  select(flag_data_df, flag, t.frame, channel), 
+  by = c("t.frame", "flag")
+) %>% 
+  dplyr::filter(pixtype == "b", channel == "TFP") %>% 
+  select(-pixtype, -channel, -flag)
+
+boundary_hues_tfp
+```
+
+
+```{r}
+cell_data <- rcell2::load_cell_data(path = path)
+
+cell_data$data <- cell_data$data %>% left_join(boundary_hues_tfp)
+```
+
+## Possible BUG ¿tres fotos y solo dos flags?
+
+Hay dos flags pero tres fotos. Quizas las boundaries que estoy cargando ahora como si fueran de dos canales diferentes, son realmente solo del BF.
+
+En ese caso si las boundaries se alinean con el FL o lo que sea, sus nuevas posiciones no se guardan en el cell "blob".
