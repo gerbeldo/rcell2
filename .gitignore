@@ -21,3 +21,11 @@ data/time_series_image_samples/Position*/out/
 /data/time_series_image_samples_bf_as_fl/*
 
 src/cellIDnoglib/cell
+
+src/cellIDnoglib/cell.log
+
+src/cellIDnoglib/cell.sh
+
+src/cellIDnoglib/doc/cellid_intensity_relationship.png
+
+src/cellIDnoglib/source_from_nmethods/nmeth1008-S4.zip
