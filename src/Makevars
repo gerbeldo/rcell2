@@ -1,14 +1,15 @@
-#CC=ccache clang -Qunused-arguments
-#CXX=ccache clang++ -Qunused-arguments
-#CCACHE_CPP2=yes
+CC=ccache clang -Qunused-arguments
+CXX=ccache clang++ -Qunused-arguments
+CCACHE_CPP2=yes
 
 # Include de archivos ".h"
 # apparently unnecesary
-#PKG_CPPFLAGS= -I./tiff410/libtiff
+PKG_CPPFLAGS= -I./tiff410/libtiff
 # Links a archivos ".so" (las libraries)
-#PKG_LIBS= -L./tiff410/r_build/libtiff -ltiff -ljpeg -llzma -lz
+PKG_LIBS= -L./tiff410/r_build/libtiff -ltiff -ljpeg -llzma -lz
 
-#MAKEFLAGS = -j4
+MAKEFLAGS = -j4
+
 
 # https://makefiletutorial.com/
 # A Makefile consists of a set of rules. A rule generally looks like this:
@@ -22,17 +23,16 @@
 # For example, if the file “clean” is created somehow elsewhere, "make clean" will still be run.
 .PHONY: all tiflibs rbuildcleanup
 
-all: cellid rbuildcleanup
+all: $(SHLIB) rbuildcleanup
 
-cellid: tiflibs
-	cd cellIDnoglib && autoreconf -fvi && ./configure && make -j2 && mv cell ../../inst/cell
+$(SHLIB): tiflibs
 
 # Note that each command is run independently, that's why all must have have a cd prepended.
 tiflibs:
 	mkdir -p tiff410/r_build
-	cd tiff410/r_build && cmake --clean-first ../ && make all -j2 -B && cmake --target clean ../
+	cd tiff410/r_build && cmake --clean-first ../ && make all -j4 -B && cmake --target clean ../
 
 # The cleanup target must depend on the rest in order to be execured last in a parallel compilation
-rbuildcleanup: tiflibs cellid
+rbuildcleanup: tiflibs $(SHLIB)
 	rm -rf tiff410/r_build/*
 	touch tiff410/r_build/.r_nodelete
