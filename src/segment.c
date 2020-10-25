@@ -4797,7 +4797,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
 	           printf("ERROR: Cell with ID %i exceeds the max amount in FRET type images\n", cs[j]->index);
 	           printf("This soft limit can be increased by changing the source code at segment.c\n");
 	           printf("Specifically, the line: #define fret_offset 1000\n");
-	           exit(1);
+	           perror("ERROR in segment.c");  // rcell2 addition
         	 }
 	        }
 						
@@ -4805,7 +4805,7 @@ void update_list_of_found_cells(int i_t, int secs, int flag){
 	        for(b=cs[j];(b!=NULL)&&(b->i_time==i_t);b=b->prev);
 	        if(b==NULL){ //Should never happen
 	          printf("Chose a list that had no previous elements!!!\n");
-	          printf("!!!!!!!!!! (%i, %i) !!!!!!!!!\n",i_t,j);
+	          printf("!!!!!!!!!! (i_t: %i, j: %i) !!!!!!!!!\n",i_t,j);
 	          break;
 	        }
 	        isection=overlap(b->interior,offset_i,offset_j);
