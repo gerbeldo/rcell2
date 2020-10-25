@@ -13,16 +13,18 @@
 #' @param pdata dataframe "position data"
 #' @param paths dataframe of image paths 
 #' @param cell_tags list of named vectors corresponding to tag groups and tags: list(named_item1 = c(option1, option2, ...), named_item2 ...)
+#' @param randomize_ucids Randomize ucid order.
 #' @param tag_box_size size of the image crop in pixels
 #' @param cell_resize resize of the image crop in pixels
 #' @param tag_channels_select a vector giving names for the image channels: c("BF", "YFP.out", etc....)
-#' @param .equalize Use magick's function to "equalize" the images.
-#' @param .normalize Use magick's function to "normalize" the images.
+#' @param equalize_images Use magick's function to "equalize" the images.
+#' @param normalize_images Use magick's function to "normalize" the images.
 #' @param n_max max number of boxes in the image
 #' @param seed seed for random sampling of images
 #' @param tmp_output_file file path into which tagging information will be dumped by user request
 #' @param tag_ggplot a ggplot object to display in the second tab, may be used for something someday.
 #' @param debug_messages print debug messages
+#' @param ... arguments for magickCell 
 # @param ... extra arguments, not used.
 #' @return Lots of stuff.
 #' @examples
@@ -65,7 +67,9 @@
 #'                          cell_resize = 300,
 #'                          tag_ggplot = p,
 #'                          tmp_output_file = "../output/annotations/progress.csv", 
-#'                          debug_messages = F)
+#'                          debug_messages = F,
+#'                          annotation_params = c(color = "none", background = "none")
+#'                          )
 #'                          
 #' @import shiny ggplot2 magick
 #' @importFrom grDevices rgb
@@ -75,6 +79,7 @@ tagCell <- function(cdata,
                     pdata,
                     paths,
                     cell_tags,
+                    randomize_ucids = FALSE,
                     tag_box_size = 50,
                     cell_resize=100,
                     tag_channels_select=c("BF"),
@@ -82,9 +87,9 @@ tagCell <- function(cdata,
                     seed = 1,
                     tmp_output_file=NULL,
                     tag_ggplot = NULL,
-                    .equalize = F,
-                    .normalize = T,
-                    debug_messages = T,
+                    equalize_images = F,
+                    normalize_images = F,
+                    debug_messages = F,
                     ...){
   
   # To-do
@@ -92,16 +97,28 @@ tagCell <- function(cdata,
   # Implement more-than-2 variable faceting. The third and ith faceting variables of the brush are stored in "panelvar3" and so on (?)
   # Integrate polygon filter functionality, currently the drawn polygons do nothing (except show up).
   
+  # Check NAs in ucid variable
+  if(any(is.na(cdata[["ucid"]]))) stop("\ntagCell: ucid variable contains NA values")
+  
+  # Check ucid type and convert to integer
+  ucid_class_check <- class(cdata[["ucid"]])
+  if(ucid_class_check != "integer"){
+    warning(paste("\ntagCell: cohercing", ucid_class_check, "ucid to integer type"))
+    
+    if(ucid_class_check == "factor"){
+      cdata <- dplyr::mutate(cdata, ucid = as.integer(as.character.factor(ucid)))
+      
+    } else {
+      cdata <- mutate(cdata, ucid = as.integer(ucid))
+    }
+  }
+  
+  # Setup environments for the shiny app, from this environment
   environment(tagCellServer) <- environment()
   environment(tagCellUi) <- environment()
   
   #### RUN APP ####
-  # runApp inicia la app inmediatamente, shinyApp solo no se dispara dentro de una función parece
-  # saved <- runApp(shinyApp(ui, server))
   saved <- shiny::runApp(list(ui = tagCellUi(), server = tagCellServer))
-  
-  # Imprimir cosas antes de cerrar la app
-  print("Chau")
   
   #### RETURN RESULT ####
   # Devolver una lista con los objetos cdata cfilter y los stringFilters

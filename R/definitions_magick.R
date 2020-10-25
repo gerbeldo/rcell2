@@ -1,19 +1,64 @@
+#' Armar mosaicos cuadrados a partir de un vector de imagenes en magick de cualquier longitud
+#' @param images A magick image vector, with images of the same size preferably.
+#' @return A single magick image of the squared tile.
+# @examples
+# square_tile(images)
+#' @import magick dplyr
+#' @rawNamespace import(foreach, except = c("when", "accumulate"))
+#' @export
+square_tile <- function(images){
+  nRow <- ceiling(sqrt(length(images)))
+  nCol <- ceiling(length(images)/nRow)
+  
+  image.tile <- foreach::foreach(tile_row=0:(nRow-1), .combine=c) %do% {
+    
+    row_images_index = (1 + tile_row * nCol):(tile_row * nCol + nCol)
+    
+    # Important for the last row
+    if(nRow * nCol > length(images)){
+      row_images_index <- row_images_index[row_images_index <= length(images)]
+    }
+    
+    magick::image_append(images[row_images_index])
+  }
+  
+  image.tile <- magick::image_append(image.tile, 
+                                     stack = T)
+  
+  if(length(images) > 50) warning("square_tile says: you have more than 50 images in the input array ¿Are you sure that this is ok?")
+  return(image.tile)
+}
+
 #' Funcion copada para mostrar fotos basada en magick
+#' @details
+#' Paths dataframe structure. Output example from \code{glimpse(paths)}:
+#' 
+#' \preformatted{Columns: 6
+#' $ pos     <int> 1
+#' $ t.frame <int> 0
+#' $ channel <chr> "YFP"
+#' $ image   <chr> "picture_filename.tif"
+#' $ path    <chr> "/path/to/directory/with/pictures/"
+#' $ file    <chr> "/path/to/directory/with/pictures/picture_filename.tif"
+#' $ is.out  <lgl> FALSE
+#' }
 #'
 #' @param cdata A Rcell data.frame (not the object).
-#' @param paths Paths a la imagen de cada posición.
+#' @param paths A paths dataframe with file path, t.frame, position and channel information of each picture.
 #' @param max_composite_size Maximum size of the final composite image (this resize is applied last) in pixels. 1000 by default.
 #' @param cell_resize Size of the individual cell images. "100x100" by default.
 #' @param boxSize Size of the box containing the individual cell images. 50 by default.
 #' @param n maximum number of cells to display.
-#' @param .equalize Use magick's function to "equalize" the image when TRUE.
-#' @param .normalize Use magick's function to "normalize" the image when TRUE.
-#' @param ch Name of the CellID channel (BF, BF.out, RFP, ...). "BF.out" by default.
-#' @param sortVar Variable used to sort the cells. "xpos" by default.
-#' @param seed Seed value for sampling of cell images.
+#' @param equalize_images Use magick's function to "equalize" the image when TRUE (FALSE by default).
+#' @param normalize_images Use magick's function to "normalize" the image when TRUE (FALSE by default).
+#' @param ch Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.
+#' @param sortVar Variable used to sort the cells. NULL by default, to preserve the original order.
+#' @param seed Seed value for sampling of cell images. NULL by default, to disable sampling.
 #' @param .debug Print more messages if TRUE.
 #' @param return_single_imgs If TRUE, return a vector of images instead of a tile.
-#' @return Lots of stuff.
+#' @param return_ucid_df If TRUE, return is a list of magick images and ucid dataframes.
+#' @param  annotation_params Set to NULL to skip annotations, or a named list with values for magick::annotate options (one or more of the names "color" "background" "size"). Note that size close to zero can be invisible.
+#' @return A list of two elements: the magick image and the ucids in the image.
 # @examples
 # magickCell(cdataFiltered, sample_tiff$file, position = sample_tiff$pos, resize_string = "1000x1000")
 #' @import magick dplyr
@@ -24,16 +69,45 @@ magickCell <- function(cdata, paths,
                        cell_resize = NULL,
                        boxSize = 50, 
                        n = 100,
-                       .equalize = F, 
-                       .normalize = T,
+                       equalize_images = F, 
+                       normalize_images = F,
                        ch = "BF.out",
-                       sortVar = "xpos",
-                       seed = 1, .debug=FALSE, return_single_imgs = FALSE){
+                       sortVar = NULL,
+                       seed = NULL, 
+                       .debug=FALSE, 
+                       return_single_imgs = FALSE, return_ucid_df = F,
+                       annotation_params = list(color = "white", 
+                                                background = "black")
+                       ){
   if(.debug) print("F8")
 
   # "100x100" pixels
   if(is.null(cell_resize)) cell_resize <- boxSize
   cell_resize_string <- paste0(cell_resize, "x", cell_resize)
+  
+  # Filter paths by pos and t.frame on cdata
+  paths <- filter(paths, pos %in% cdata[,"pos", drop = T] & t.frame %in% cdata[,"t.frame", drop = T])
+  
+  # Add file path column if absent
+  if(!"file" %in% names(paths)){
+    paths$file <- normalizePath(paste0(paths$path, "/", paths$image))
+    warning("\nWarning (magickCell): 'file' variable absent in paths dataframe. Recreating it from 'path' and 'image' variables.\n")
+  }
+  
+  # Annotation parameters
+  updateList <- function(l1, l2){
+    if(!is.list(l2) | !is.list(l1)) stop("Error: annotation_params must be a named list.")
+    common.names <- names(l2)[names(l2) %in% names(l1)]
+    l1[common.names] <- l2[common.names]
+    return(l1)
+  }
+  # annotation_params = list(size = 2, color = NULL)
+  annotation_params_default = list(color = "white",
+                                   background = "black",
+                                   size = cell_resize/7)
+  if(!is.null(annotation_params)) annotation_params <- updateList(annotation_params_default, 
+                                                                  annotation_params)
+  
 
   # Intento con magick
   # magickCell(cdataFiltered, sample_tiff$file, position = sample_tiff$pos, resize_string = "1000x1000")
@@ -61,11 +135,14 @@ magickCell <- function(cdata, paths,
   ## https://rdrr.io/cran/ks/man/binning.html
   ## https://www.rdocumentation.org/packages/npsp/versions/0.7-5/topics/binning
 
-  # Sample first
-  set.seed(seed)
-  .cdataSample <- cdata[sample(1:nrow(cdata), n, replace = F),] # sample n rows from cdata
-  cdataSample <- .cdataSample[order(.cdataSample[[sortVar]]),  # sort the sample
-                              unique(c("pos", "xpos", "ypos", "ucid", "t.frame", sortVar))]  # keep only the necessary columns
+  # Sample the cdata dataframe
+  cdataSample <- cdata[,unique(c("pos", "xpos", "ypos", "ucid", "t.frame", sortVar))]  # keep only the necessary columns
+  if(!is.null(seed)){
+    set.seed(seed)
+    cdataSample <- cdata[sample(1:nrow(cdata), n, replace = F),] # sample n rows from cdata
+  }
+  # Sort cdata
+  if(!is.null(sortVar)) cdataSample <- cdataSample[order(cdataSample[[sortVar]]),]  # sort the sample by "sortVar"
 
   imga <-
     foreach::foreach(i=1:nrow(cdataSample), .combine=c) %do% {
@@ -80,36 +157,53 @@ magickCell <- function(cdata, paths,
     stopifnot(length(picPath) == length(ch) & is.character(picPath)) # Checks
 
     magick::image_read(picPath) %>%
-      {if (.normalize) magick::image_normalize(.) else .} %>%
-      {if (.equalize) magick::image_equalize(.) else .} %>%
+      {if (equalize_images) magick::image_normalize(.) else .} %>%
+      {if (normalize_images) magick::image_equalize(.) else .} %>%
       magick::image_crop(getCellGeom(xpos = cdataSample$xpos[i],
                                      ypos = cdataSample$ypos[i],
                                      boxSize)) %>%
+      # Add square black box
+      {magick::image_composite(
+        magick::image_blank(boxSize, boxSize, "black"),
+        ., gravity = "Center"
+      )} %>% 
+      # Resize
       magick::image_resize(cell_resize_string) %>%
-      magick::image_annotate(text = paste(paste0("Pos", as.character(position)),
-                                          paste0("t", t_frame),
-                                          ch),
-                             size = as.numeric(stringr::str_split(cell_resize_string, "x")[[1]])[1]/7,
-                             color = "white",
-                             boxcolor = "black",
-                             font = "Comic sans",
-                             gravity = "SouthEast") %>%
-      magick::image_annotate(text = as.character(ucid),
-                             # text = paste0(as.character(ucid), "t", t_frame),
-                             size = as.numeric(stringr::str_split(cell_resize_string, "x")[[1]])[1]/7,
-                             color = "white",
-                             boxcolor = "black",
-                             font = "Comic sans",
-                             gravity = "NorthWest") %>%
+      # Annotate
+      {if(is.null(annotation_params)) . else 
+        magick::image_annotate(.,
+                               text = paste(paste0("Pos", as.character(position)),
+                                            paste0("t", t_frame),
+                                            ch),
+                               color = annotation_params[["color"]],
+                               boxcolor = annotation_params[["background"]],
+                               size = annotation_params[["size"]],
+                               font = "Comic sans",
+                               gravity = "SouthEast")} %>%
+      {if(is.null(annotation_params)) . else 
+        magick::image_annotate(.,
+                               text = as.character(ucid),
+                               color = annotation_params[["color"]],
+                               boxcolor = annotation_params[["background"]],
+                               size = annotation_params[["size"]],
+                               font = "Comic sans",
+                               gravity = "NorthWest")} %>%
+      # Add black border
       magick::image_border("black","1x1") %>% 
+      # Tile horizontally
       magick::image_append()
     }
 
   stopifnot(length(imga) == nrow(cdataSample)) # Checks
   
-  if(return_single_imgs) return(list("img" = imga,
-                                     "ucids" = cdataSample$ucid))
-
+  if(return_single_imgs) {
+    if(return_ucid_df) {
+      return(list("img" = imga, "ucids" = cdataSample$ucid))
+    } else {
+      return(imga)
+    }
+  }
+  
   nRow <- ceiling(sqrt(n))
   nCol <- ceiling(n/nRow)
 
@@ -131,8 +225,11 @@ magickCell <- function(cdata, paths,
     imgb <- magick::image_resize(imgb, resize_string)
   }
 
-  return(list("img" = imgb,
-              "ucids" = cdataSample$ucid))
+  
+  if(return_ucid_df)
+    return(list("img" = imgb,
+                "ucids" = cdataSample$ucid))
+  else return(imgb)
 }
 
 #' Funcion copada para mostrar fotos basada en magick

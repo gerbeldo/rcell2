@@ -16,3 +16,6 @@ data/time_series_image_samples/Position*/out/
 /data/image_samples_x/Position*/out*
 /src/tiff410/r_build/*
 /data/time_series_image_samples_2
+/data/image_samples/*
+/data/time_seres_images_hu_moments/*
+/data/time_series_image_samples_bf_as_fl/*

@@ -240,7 +240,7 @@ kmeans_clustering <- function(x, k=10, max_iter=100, resume=FALSE, label_col = '
     k.labs.current <- k.labs
     
     ## Print progress
-    cat("\r  Iteration #",i.count," (",max_iter,")",". Re-assignments: ",i.diff," ",sep="")
+    cat("\r  Iteration #",i.count," (",max_iter,")",". Re-assignments: ",i.diff,"           ",sep="")
     flush.console() 
     
     if(i.diff==0){
@@ -263,11 +263,13 @@ kmeans_clustering <- function(x, k=10, max_iter=100, resume=FALSE, label_col = '
   k.data <- lapply(k.data,function(x) x[order(x[,3]),])
   k.data <- do.call(rbind.data.frame, k.data)
   
-  ## Remove any pre-existing 'k' and 'k.dist' columns, and append new columns
-  xdata <- xdata %>% mutate(k = NULL, k.dist = NULL) %>% left_join(k.data,by=c("t.frame","ucid"))
-  
-  ## Return original object with appended columns
-  if(is.cell.data(x)) x$data <- xdata
-  else x <- xdata
+  ## Remove any pre-existing 'k' and 'k.dist' columns from x, and append new columns
+  if(is.cell.data(x)){
+    x$data <- x$data %>% mutate(k = NULL, k.dist = NULL) %>% left_join(k.data,by=c("t.frame","ucid"))
+  }
+  else{
+    x <- x %>% mutate(k = NULL, k.dist = NULL) %>% left_join(k.data,by=c("t.frame","ucid"))
+  }
   return(x)
 }
+                   

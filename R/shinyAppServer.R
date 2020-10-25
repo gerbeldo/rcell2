@@ -18,6 +18,8 @@ shinyAppServer <-
       if(!{cdata$t.frame %>% unique() %>% length()} == 1){
         cdata <- mutate(cdata, ucid_time = paste0(ucid, "_", t.frame))
         cdata.cell_unique_id_field <- "ucid_time"
+      } else {
+        cdata.cell_unique_id_field <- "ucid"
       }
       values$cdata <- cdata
       
@@ -378,9 +380,9 @@ shinyAppServer <-
                                        sortVar = input$x, 
                                        seed = values$seed, 
                                        n = n_max, 
-                                       .equalize = input$equalize_pics,
-                                       .normalize = input$normalize_pics,
-                                       boxSize = boxSize)
+                                       equalize_images = input$equalize_pics,
+                                       normalize_images = input$normalize_pics,
+                                       boxSize = boxSize, return_ucid_df = T)
             tmpimage <- magick.cell$img
             print(magick.cell$ucids)
           } else {
@@ -456,9 +458,9 @@ shinyAppServer <-
                                     sortVar = input$x, 
                                     seed = values$seed, 
                                     n = n_max, 
-                                    .equalize = input$equalize_pics,
-                                    .normalize = input$normalize_pics,
-                                    boxSize = boxSize)
+                                    equalize_images = input$equalize_pics,
+                                    normalize_images = input$normalize_pics,
+                                    boxSize = boxSize, return_ucid_df = T)
           tmpimage <- magick.cell$img
         } else {
           # Si no hay algo seleccionado output white
@@ -541,7 +543,9 @@ shinyAppServer <-
           
           
           # Find the closest point
-          d <- hover_closest(ui_input = input, cdata = d)
+          # d <- hover_closest(ui_input = input, cdata = d)
+          print("-- Finding one of nearPoints, probably always by facet")
+          d <- shiny::nearPoints(d, input$hover, maxpoints = 1, xvar = input$x, yvar = input$y)
           
           # Output an image if filtering returns a non-empty selection
           if(nrow(d) > 0) {
@@ -550,9 +554,9 @@ shinyAppServer <-
                                        sortVar = input$x, 
                                        seed = values$seed, 
                                        n = 1, 
-                                       .equalize = input$equalize_pics,
-                                       .normalize = input$normalize_pics,
-                                       boxSize = boxSize)
+                                       equalize_images = input$equalize_pics,
+                                       normalize_images = input$normalize_pics,
+                                       boxSize = boxSize, return_ucid_df = T)
             tmpimage <- magick.cell$img
             print(magick.cell$ucids)
           } else {
