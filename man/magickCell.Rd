@@ -11,19 +11,21 @@ magickCell(
   cell_resize = NULL,
   boxSize = 50,
   n = 100,
-  .equalize = F,
-  .normalize = T,
+  equalize_images = F,
+  normalize_images = F,
   ch = "BF.out",
-  sortVar = "xpos",
-  seed = 1,
+  sortVar = NULL,
+  seed = NULL,
   .debug = FALSE,
-  return_single_imgs = FALSE
+  return_single_imgs = FALSE,
+  return_ucid_df = F,
+  annotation_params = list(color = "white", background = "black")
 )
 }
 \arguments{
 \item{cdata}{A Rcell data.frame (not the object).}
 
-\item{paths}{Paths a la imagen de cada posición.}
+\item{paths}{A paths dataframe with file path, t.frame, position and channel information of each picture.}
 
 \item{max_composite_size}{Maximum size of the final composite image (this resize is applied last) in pixels. 1000 by default.}
 
@@ -33,23 +35,40 @@ magickCell(
 
 \item{n}{maximum number of cells to display.}
 
-\item{.equalize}{Use magick's function to "equalize" the image when TRUE.}
+\item{equalize_images}{Use magick's function to "equalize" the image when TRUE (FALSE by default).}
 
-\item{.normalize}{Use magick's function to "normalize" the image when TRUE.}
+\item{normalize_images}{Use magick's function to "normalize" the image when TRUE (FALSE by default).}
 
-\item{ch}{Name of the CellID channel (BF, BF.out, RFP, ...). "BF.out" by default.}
+\item{ch}{Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.}
 
-\item{sortVar}{Variable used to sort the cells. "xpos" by default.}
+\item{sortVar}{Variable used to sort the cells. NULL by default, to preserve the original order.}
 
-\item{seed}{Seed value for sampling of cell images.}
+\item{seed}{Seed value for sampling of cell images. NULL by default, to disable sampling.}
 
 \item{.debug}{Print more messages if TRUE.}
 
 \item{return_single_imgs}{If TRUE, return a vector of images instead of a tile.}
+
+\item{return_ucid_df}{If TRUE, return is a list of magick images and ucid dataframes.}
+
+\item{annotation_params}{Set to NULL to skip annotations, or a named list with values for magick::annotate options (one or more of the names "color" "background" "size"). Note that size close to zero can be invisible.}
 }
 \value{
-Lots of stuff.
+A list of two elements: the magick image and the ucids in the image.
 }
 \description{
 Funcion copada para mostrar fotos basada en magick
+}
+\details{
+Paths dataframe structure. Output example from \code{glimpse(paths)}:
+
+\preformatted{Columns: 6
+$ pos     <int> 1
+$ t.frame <int> 0
+$ channel <chr> "YFP"
+$ image   <chr> "picture_filename.tif"
+$ path    <chr> "/path/to/directory/with/pictures/"
+$ file    <chr> "/path/to/directory/with/pictures/picture_filename.tif"
+$ is.out  <lgl> FALSE
+}
 }

@@ -7,7 +7,7 @@
 \item{lhs, rhs}{specify what lhs and rhs are}
 }
 \description{
-This is not a pipe
+Put description here
 }
 \examples{
 # some examples if you want to highlight the usage in the package

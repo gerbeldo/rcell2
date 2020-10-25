@@ -9,6 +9,7 @@ tagCell(
   pdata,
   paths,
   cell_tags,
+  randomize_ucids = FALSE,
   tag_box_size = 50,
   cell_resize = 100,
   tag_channels_select = c("BF"),
@@ -16,9 +17,9 @@ tagCell(
   seed = 1,
   tmp_output_file = NULL,
   tag_ggplot = NULL,
-  .equalize = F,
-  .normalize = T,
-  debug_messages = T,
+  equalize_images = F,
+  normalize_images = F,
+  debug_messages = F,
   ...
 )
 }
@@ -30,6 +31,8 @@ tagCell(
 \item{paths}{dataframe of image paths}
 
 \item{cell_tags}{list of named vectors corresponding to tag groups and tags: list(named_item1 = c(option1, option2, ...), named_item2 ...)}
+
+\item{randomize_ucids}{Randomize ucid order.}
 
 \item{tag_box_size}{size of the image crop in pixels}
 
@@ -45,11 +48,13 @@ tagCell(
 
 \item{tag_ggplot}{a ggplot object to display in the second tab, may be used for something someday.}
 
-\item{.equalize}{Use magick's function to "equalize" the images.}
+\item{equalize_images}{Use magick's function to "equalize" the images.}
 
-\item{.normalize}{Use magick's function to "normalize" the images.}
+\item{normalize_images}{Use magick's function to "normalize" the images.}
 
 \item{debug_messages}{print debug messages}
+
+\item{...}{arguments for magickCell}
 }
 \value{
 Lots of stuff.
@@ -97,6 +102,8 @@ saved <- rcell2::tagCell(cdata,
                          cell_resize = 300,
                          tag_ggplot = p,
                          tmp_output_file = "../output/annotations/progress.csv", 
-                         debug_messages = F)
+                         debug_messages = F,
+                         annotation_params = c(color = "none", background = "none")
+                         )
                          
 }
