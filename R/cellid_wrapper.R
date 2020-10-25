@@ -2,11 +2,11 @@
 #'
 #' @param args el comando de cellid entero, tal como se ejecutaria en bash "cell -p ..."
 #' @param debug_flag Set to 0 to disable CellID printf messages.
-# @useDynLib rcell2 CellID
+#' @useDynLib rcell2 CellID
 #' @export
 #' @return Exit code from CellID
 cellid <- function(args, debug_flag=0){
-
+  
   # args <- "~/Software/cellID-linux/cell -p /home/nicomic/Projects/Colman/HD/scripts/cellMagick/data/images/parameters.txt -b /tmp/Rtmp7fjlFo/file2b401093d715 -f /tmp/Rtmp7fjlFo/file2b402742f6ef -o /home/nicomic/Projects/Colman/HD/uscope/20200130_Nico_screen_act1_yfp/1/Position001/out"
   argv <- strsplit(args, " ")[[1]]
   argc <- length(argv)
@@ -14,10 +14,14 @@ cellid <- function(args, debug_flag=0){
   if(debug_flag != 0) print("Printing argv and argc before .C() call to CellID.")
   if(debug_flag != 0) print(argv)
   if(debug_flag != 0) print(argc)
-
-  exit_code <- 0
   
-  if(exit_code != 1) stop(paste("CellID is not bundled in this branch, see master_cellid", exit_code))
+  exit_code <- .C(CellID, 
+                  as.integer(argc),             # Argument count
+                  as.character(argv),           # Argument character vector
+                  as.integer(0)                 # Return variable: "out[0] = 1;" is set at the end of cell.c
+                  )[[3]]                        # get the value of the third argument "out" as a return value
+  
+  if(exit_code != 1) stop(paste("CellID exited with error code:", exit_code))
   
   return(exit_code)
 }
