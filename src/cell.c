@@ -108,7 +108,8 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 int opt;
 
-int main(int argc, char *argv[]){
+void CellID(int * argc0, char *argv[], int* out){
+  int argc = *argc0;
 
   //The first argument should point to a file that contains a list of
   //phase contrast files.
@@ -389,17 +390,20 @@ int main(int argc, char *argv[]){
       equal_sign=strstr(argv[i],"=");
       if(equal_sign==NULL){
         if(i+1<argc && argv[i+1][0]!='-'){
-          param_file=argv[i+1];
+          param_file=argv[i+1]; 
         }else{
           printf("Filename requiered after -p or --param option");
-          return 0;
-        }
+          perror("Error! 1");  // rcell2 addition
+          return;  // rcell2 modification
+        }  
       } else {
-        param_file=++equal_sign;
+        param_file=++equal_sign;  
       }
-    }
+    }    
   }
 
+  // CellID chunk
+  // Look for parameters, one by one, in the parameters file.
   if(help_flag==0 && (fp=fopen(param_file,"r"))!=NULL ){
     printf("Reading %s\n",param_file);
     //fscanf() only reads to next white space, not end of line
@@ -606,9 +610,9 @@ int main(int argc, char *argv[]){
   if(help_flag==1){
     printf("For help type 'cell --help'\n");
     printf("Required options: --bright brightfile.txt --fluor fluorfile.txt");
-    return 0;
+    return; 
   }
-
+  
   if(output_individual_cells==1){
       system("mkdir -p cells");
   }
@@ -752,18 +756,19 @@ int main(int argc, char *argv[]){
   }else if (overall_id_offset==-1){
     overall_id_offset=0;
   }else{
-      printf("    Append_output was requested with ID offset of %i.\n",overall_id_offset);
-      printf("    Minimum offset is 0.\n");
-      exit(0);
-    }
+	  printf("Append_output was requested with ID offset of %i.\n",overall_id_offset);
+	  printf("Minimum offset is 0.\n");
+    perror("Error! 3"); //exit(0); //http://r-pkgs.had.co.nz/src.html
+	}
 
 
   //Read in the files
   n_third=0;
   if (third_list_file!=NULL){//if there is a third image
     if( (fp_in=fopen(third_list_file,"r"))==NULL ){
-        printf("Couldnt open file %s.\n",third_list_file);
-        return 0;
+      printf("Couldnt open third_list_file file %s.\n",third_list_file);
+      perror("Error! 4");
+      return;
     }
     //Read in names of the third-files to be read in
     i=0;
@@ -807,8 +812,9 @@ int main(int argc, char *argv[]){
 
   //loading brightfield file names into array phase_files
   if( (fp_in=fopen(bright_list_file,"r"))==NULL ){
-    printf("Couldnt open file %s.\n",bright_list_file);
-    return 0;
+    printf("Error! 5: Couldnt open bright_list_file file %s.\n",bright_list_file);
+    perror("Error! 5");
+    return;
   }
   i=0;
   while(fscanf(fp_in,"%s",line)==1){ //the 1 means it filled the "%s" part
@@ -821,8 +827,9 @@ int main(int argc, char *argv[]){
 
   //loading fluorescence file names into array fluor_files
   if( (fp_in=fopen(fluor_list_file,"r"))==NULL ){
-    printf("Couldnt open file %s.\n",fluor_list_file);
-    return 0;
+    printf("Couldnt open fluor_list_file file %s.\n",fluor_list_file);
+    perror("Error! 6");
+    return;
   }
   i=0;
   while(fscanf(fp_in,"%s",line)==1){ //the 1 means it filled the "%s" part
@@ -977,7 +984,8 @@ int main(int argc, char *argv[]){
     for(i=0;i<n_flat;i++){
       if(get_date_and_time(flat_files[i],&dtmp,&t,&xstage,&ystage)==0){
         printf("Couldn't get date and time for %s.\n",flat_files[i]);
-        return 0;
+        perror("Error! 7");
+        return;
       }else{
         t=t/1000; //Convert to seconds
         flat_t[i]=t;
@@ -1041,7 +1049,8 @@ int main(int argc, char *argv[]){
     if (n_phase!=n_fluor){
       printf("The number of elements in %s (%i) and %s (%i) \n",bright_list_file,n_phase,fluor_list_file,n_fluor);
       printf("must be equal. Make sure not lo leave any blank spaces at the end of the files");
-      return 0;
+      perror("Error! 8");
+      return;
     }
 
     //Assining null time values
@@ -1151,19 +1160,22 @@ int main(int argc, char *argv[]){
     if((fl=get_data_from_tif_file(fluor_files[i],0,dark,
                               &xmax_new,&ymax_new))==NULL){
       printf("Couldn't open tif file %s.\n",fluor_files[i]);
-      return 0;
+      perror("Error! 9");
+      return;
     }
     if (((xmax>0)&&(xmax!=xmax_new))||((ymax>0)&&(ymax!=ymax_new))){
       printf("New file has different dimensions that others\n");
       printf("that were already loaded. (%i,%i) is not (%i,%i)\n",
              xmax,ymax,xmax_new,ymax_new);
       free(fl);
-      return 0;
+      perror("Error! 10");
+      return;
     }
     if ((xmax_new<=0)||(ymax_new<=0)){
       printf("Couldn't get data from tif file %s\n",fluor_files[i]);
       free(fl);
-      return 0;
+      perror("Error! 11");
+      return;
     }
     xmax=xmax_new; //xmax<0 means haven't done yet, so just redefine
     ymax=ymax_new;//here even though usually the same
@@ -1330,20 +1342,22 @@ int main(int argc, char *argv[]){
               break;
             }
           }
-          if((third_image=get_data_from_tif_file(third_files[third_cur],0,dark,
-                                                         &xmax_new,&ymax_new))==NULL){
-            printf("Couldn't open tif file %s.\n",third_files[third_cur]);
-            return 0;
-          }
-          if ((xmax!=xmax_new)||(ymax!=ymax_new)){
-            printf("Third file has different dimensions than others\n");
-            printf("that were already loaded. (%i,%i) is not (%i,%i)\n",
-                xmax,ymax,xmax_new,ymax_new);
-            free(third_image);
-            return 0;
-          }
-          //Subtract fluorescence image as a test--for vacuole type
-          if(third_image_type==vacuole_label){
+	      if((third_image=get_data_from_tif_file(third_files[third_cur],0,dark,
+				                                         &xmax_new,&ymax_new))==NULL){
+          printf("Couldn't open tif file %s.\n",third_files[third_cur]);
+          perror("Error! 12");
+          return;
+	      }
+	      if ((xmax!=xmax_new)||(ymax!=ymax_new)){
+	        printf("Third file has different dimensions than others\n");
+	        printf("that were already loaded. (%i,%i) is not (%i,%i)\n",
+		        xmax,ymax,xmax_new,ymax_new);
+	        free(third_image);
+          perror("Error! 13");
+          return;
+	      }
+	      //Subtract fluorescence image as a test--for vacuole type
+	      if(third_image_type==vacuole_label){
             nloop=xmax*ymax;
             tmp1=0.0;
             tmp2=0.0;
@@ -1456,6 +1470,8 @@ int main(int argc, char *argv[]){
                                      0,
                                      mask_output)==0){
             printf("Couldn't output data to tif file %s.\n",line);
+            perror("Error! 13+1");
+            return;
           }
         }
       }
@@ -1484,18 +1500,20 @@ int main(int argc, char *argv[]){
 
       //Read in brightfield image data for ith file
       free(bf);
-      //Do no dark field correction for bright field image....
-      if((bf=get_data_from_tif_file(phase_files[j_cur],0,NULL,&xmax_new,&ymax_new))==NULL){
-        printf("Couldn't open tif file %s.\n",phase_files[j_cur]);
+    	//Do no dark field correction for bright field image....
+    	if((bf=get_data_from_tif_file(phase_files[j_cur],0,NULL,&xmax_new,&ymax_new))==NULL){
+    	  printf("Couldn't open tif file %s.\n",phase_files[j_cur]);
+        perror("Error! 14");
         free(bf);
-        return 0;
+        return;
       }
       if ((xmax!=xmax_new)||(ymax!=ymax_new)){
-              printf("BF file has different dimensions than others\n");
-              printf("that were already loaded. (%i,%i) is not (%i,%i)\n",
-                  xmax,ymax,xmax_new,ymax_new);
-              free(bf);
-              return 0;
+			  printf("BF file has different dimensions than others\n");
+			  printf("that were already loaded. (%i,%i) is not (%i,%i)\n",
+	      		xmax,ymax,xmax_new,ymax_new);
+			  free(bf);
+        perror("Error! 15");
+        return;
       }
 
       //Make sure to add new array to global variables in segment.
@@ -1650,6 +1668,8 @@ int main(int argc, char *argv[]){
           strcat(line,fluor_files[i]);
           if(output_individual_cells_to_file(i,line,fl,xmax,ymax,0,8,0,mask_output)==0){
             printf("Couldn't output individual to tif file %s.\n",line);
+          perror("Error! 15+1");
+          return;
           }
       }
 
@@ -1671,6 +1691,8 @@ int main(int argc, char *argv[]){
                                  0,
                                  mask_output)==0){
           printf("Couldn't output data to tif file %s.\n",line);
+        perror("Error! 15+2");
+        return;
         }
       //}  // Andy: closing bracket for the proposed if statement above
   }
@@ -1690,6 +1712,8 @@ int main(int argc, char *argv[]){
                                            mask_output)==0){
 
         printf("Couldn't output individual to tif file %s.\n",line);
+          perror("Error! 15+3");
+          return;
         }
     }
     output_third_image=0;
@@ -1706,6 +1730,8 @@ int main(int argc, char *argv[]){
                                mask_output)==0){
 
       printf("Couldn't output data to tif file %s.\n",line);
+        perror("Error! 15+4");
+        return;
     }
   }
 
@@ -1741,6 +1767,8 @@ int main(int argc, char *argv[]){
       strcat(line,phase_files[j_cur]);
       if(output_individual_cells_to_file(i,line,bf,xmax,ymax,0,8,0,mask_output)==0){
         printf("Couldn't output individual to tif file %s.\n",line);
+          perror("Error! 15+5");
+          return;
       }
     }
 
@@ -1760,6 +1788,8 @@ int main(int argc, char *argv[]){
                                mask_output)==0){
 
       printf("Couldn't output data to tif file %s.\n",line);
+        perror("Error! 15+6");
+        return;
     }
 
   }
@@ -1804,6 +1834,8 @@ int main(int argc, char *argv[]){
                                0,
                                mask_output)==0){
       printf("Couldn't output data to tif file %s.\n",line);
+      perror("Error! 15+7");
+      return;
     }
   }
 
@@ -1822,11 +1854,15 @@ int main(int argc, char *argv[]){
     printf("Output file in PAW format.\n");
     if(output_cells(output_basename,append,time_index)==0){
       printf("Couldn't open X output files: %s.\n",line2);
+      perror("Error! 16");
+      return;
     }
   } else {
     printf("Output file in R format.\n");
     if(output_cells_single_file(output_basename,append,time_index, out_mask)==0){
       printf("Couldn't open X output files: %s.\n",line2);
+      perror("Error! 17");
+      return;
     }
   }
 
@@ -1837,9 +1873,10 @@ int main(int argc, char *argv[]){
   if((bf_fl_file=fopen(bf_fl_file_name,"w"))==NULL){
     printf("Couldn't open file %s\n",bf_fl_file_name);
     fflush(stdout);
-    return 0;
+    perror("Error! 18");
+    return;
   }
-
+  
   fprintf(bf_fl_file,"fluor\tflag\tt.frame\tbright\tbf.as.fl\n");
   for(i=0;i<n_fluor;i++){
     fprintf(bf_fl_file,"%s\t%i\t%i\t%s\t%i\n",fluor_files[i],flag[i],
@@ -1850,5 +1887,6 @@ int main(int argc, char *argv[]){
 
   printf("\n\n******** CellID is done! enjoy your single cell datasets :) ********\n");
   fflush(stdout);
-  return 1;
+  out[0] = 1; 
+  return;
 }
