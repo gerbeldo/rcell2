@@ -4,6 +4,10 @@ Functions to analyze Cell-ID single-cell cytometry data in a tidy and shiny fram
 
 A CellID wrapper is also on the works. Checkout the `cellid_master` branch.
 
+## Branch notes
+
+Try out the CellID binary at `inst/cell` (in the package directory of `rcell2`).
+
 # Installation
 
 ## Dependencies
