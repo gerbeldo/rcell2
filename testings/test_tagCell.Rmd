@@ -10,9 +10,9 @@ output: html_document
 ```{r build, message=FALSE, warning=TRUE}
 devtools::document()
 devtools::load_all(recompile = F, reset = T, quiet = T)
-# devtools::install(reload = T, build = F,
-#                   quiet = T,
-#                   upgrade = "never", keep_source = T)
+devtools::install(reload = T, build = F,
+                  quiet = T,
+                  upgrade = "never", keep_source = T)
 # devtools::install_github("gerbeldo/rcell2", ref = "rcellid_no_labels")
 # devtools::check()
 # devtools::build()
@@ -48,7 +48,7 @@ devtools::install(reload = T, build = T,
 ## Load data and plot something
 
 ```{r}
-cell.data <- rcell2::cell.load.alt(path =  path, cellid.zero.pad = 5)
+cell.data <- rcell2::cell.load.alt(path =  path, ucid.zero.pad = 5)
 
 head(cell.data$d) %>% select(ucid, pos, cellID, t.frame)
 
@@ -65,8 +65,8 @@ p
 ## Shiny plotApp test
 
 ```{r}
-devtools::document()
-devtools::load_all(recompile = F, reset = T, quiet = T)
+# devtools::document()
+# devtools::load_all(recompile = F, reset = T, quiet = T)
 
 datos <- readRDS("../data/datos.con.todo.RDS")
 
@@ -108,7 +108,10 @@ saved <- rcell2::tagCell(cell.data$d, pdata, paths,
                          # t_frame_tile = "vertical",  # c("vertical", "horizontal", "animate", "stack")
                          # tag_channels_select = NULL,  # c("BF.out", "BF", "YFP", ...)
                          tag_box_size = 75,
-                         tag_ggplot = p)
+                         tag_ggplot = p, 
+                         annotation_params = c(color = "none", 
+                                               background = "none")
+                         )
 
 
 saved

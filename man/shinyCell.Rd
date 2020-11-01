@@ -10,18 +10,20 @@ shinyCell(
   paths,
   filters = list(),
   filters.init_selected = T,
-  plotType = "Hex",
+  plotType = "Dots",
   seed = 1,
   initial_facet = "",
+  initial_vars = NULL,
   facet_grid_option = TRUE,
-  facets_scale_free = NULL,
+  facets_scale_free = "fixed",
   n_max = 100,
-  boxSize = 50,
+  boxSize = 80,
+  filter_progress_file = NULL,
   ...
 )
 }
 \arguments{
-\item{cdata}{A Rcell data.frame (not the object).}
+\item{cdata}{A Rcell "cdata" data.frame (not the object).}
 
 \item{pdata}{A "pdata" data.frame with position metadata.}
 
@@ -35,11 +37,15 @@ shinyCell(
 
 \item{initial_facet}{Initial facet formula as a string.}
 
+\item{initial_vars}{Initial cdata variables as a string vector (default NULL, for 'a.tot' and 'fft.stat').}
+
 \item{facet_grid_option}{Use facet_grid (TRUE, default) or facet_wrap.}
 
 \item{facets_scale_free}{Use facets with fixed scales (NULL, default) or free scales ("free").}
 
 \item{boxSize}{Size in pixels for individual cells' images.}
+
+\item{filter_progress_file}{Save filtering progress to an RDS file. FALSE (default) disables this feature. Set to NULL to let tempfile() choose a path for the RDS, or set to a valid path of your choice.}
 
 \item{...}{Further arguments passed to magickCell()}
 }

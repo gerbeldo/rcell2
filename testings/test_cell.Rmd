@@ -5,11 +5,11 @@ date: "7/20/2020"
 output: html_document
 ---
 
-# Rebuild and reload
+# Rebuild
 
 ```{r build, eval=FALSE, message=FALSE, warning=TRUE}
 devtools::document()
-# devtools::load_all(recompile = T, reset = T)
+devtools::load_all(recompile = T, reset = T)
 devtools::install(reload = T, build = T,
                   quiet = T,
                   upgrade = "never", keep_source = T)
@@ -23,86 +23,50 @@ library(tidyverse)
 library(rcell2)
 ```
 
-# Setup
+# Ejemplo de uso con nuevo arguments2
+
+### CellID parameters
+
+Deshabilitar `align_individual_cells`, generaba artefactos en la fluorescencia de Far1.
 
 ```{r}
-path <- "../data/image_samples/"
-path.pdata <- paste0(path, "pdata.csv")
-parameters <- "../inst/parameters.txt"
+# parameters <- "~/Software/cellID-linux/test_data_tmp2/parameters_example2.txt"
+# parameters <- "../data/time_series_image_samples_bf_as_fl/parameters.txt"
+# parameters <- "/home/nicomic/Software/cellID-linux/test_data_andy/Position001/parameters_vcellid_out.txt"
+parameters <- "../inst/parameters_test.txt"
 
-difference <- function(lista) abs(lista[1] - lista[2])
+param_array <- c(
+  "max_split_over_minor 0.50",
+  "max_dist_over_waist 8.00",
+  "max_pixels_per_cell 2000",
+  "min_pixels_per_cell 75",
+  "background_reject_factor 0.5",
+  "tracking_comparison 0.20",
+  # "align_individual_cells",  # tambien se puede deshabilitar con un "#" en el mismo parameters.txt
+  "align_fl_to_bf",
+  "image_type brightfield",
+  "bf_fl_mapping list")
+
+write(param_array, file = parameters)
 ```
 
-# BUGS
-
-Using "builtin" CellID does not work correctly, emitting a warning: `Chose a list that had no previous elements!!!`
-
-See issue: https://github.com/darksideoftheshmoo/rcell2/issues/23
-
-This does not happen when using an external cellid binary. Use this in the meantime.
-
-# Ejemplo de uso
-
-## Sin tiempo
-
-### Generate CellID input paths
+Imprimir contenidos del parameters.txt:
 
 ```{r}
-path <- "../data/image_samples/"
-cell.args <- cellArgs(path = path,
-                      parameters = parameters,
-                      BF.pattern = "BF_Position\\d+\\.tif$",
-                      FP.pattern = "FP_Position\\d*\\.tif$",
-                      O.pattern = ".*(Position\\d+)\\.tif"
-                      )
-cellArgs.print(cell.args)  # Para revisar inputs
+writeLines(readLines(parameters))
 ```
-
-### Run cellid
-
-```{r, eval = F}
-cell(cell.args = cell.args,
-     # cell.command = "cellBUILTIN",
-     cell.command = "~/Software/cellID-linux/cell",
-     no_cores = 3, 
-     label_cells = 1,  # Label cells? 1 is true
-     bf_out_null_bg = 1
-     )  
-```
-
-## Con series temporales
-
-### Generate CellID input paths
-
-```{r}
-# path <- "../data/time_series_image_sample/"
-# path <- "../data/time_series_image_samples_2/"
-# path <- "/run/media/nicomic/PENDRIVE/"
-path <- "~/Software/cellID-linux/test_data/"
-parameters <- "/run/media/nicomic/PENDRIVE/parameters_hu.txt"
-
-cell.args <- cellArgs(path = path,
-                      parameters = parameters,
-                      BF.pattern = "BF_Position\\d+_time\\d+\\.tif$",
-                      FP.pattern = "FP_Position\\d*_time\\d+\\.tif$",
-                      O.pattern = ".*(Position\\d+)_time\\d+\\.tif"
-                      )
-
-cellArgs.print(cell.args)  # Para revisar inputs
-```
-
-## Con nuevo arguments2
 
 ### Generar arguments
 
 ```{r}
-# path <- "~/Software/cellID-linux/test_data/"
-path <- "/run/media/nicomic/PENDRIVE/"
-parameters <- "/run/media/nicomic/PENDRIVE/parameters_hu.txt"
+# path <- "~/Software/cellID-linux/test_data_tmp2/"
+path <- "../data/image_samples/"
+# path <- "../data/time_series_image_samples_bf_as_fl/"
+# path <- "/home/nicomic/Software/cellID-linux/test_data_andy/"
+# path <- "/home/nicomic/Software/cellID-linux/test_data_rtcc/"
 
-arguments <- 
-    rcell2::cellArgs2(path = path, 
-                  parameters = parameters)
+arguments <- rcell2::cellArgs2(path = path, parameters = parameters, file.pattern = "^(BF|[A-Z]FP)_Position(\\d+)().tif$")
+
 arguments
 ```
 
@@ -110,74 +74,65 @@ arguments
 
 ```{r}
 rcell2::cell2(arguments = arguments, 
-              cell.command = system.file("cell", package = "rcell2", mustWork = T),
-              dry = F, no_cores = 1)
+              cell.command = "~/Software/cellID-linux/cell",
+              # cell.command = system.file("cell", package = "rcell2", mustWork = T),
+              dry = T, no_cores = 1)
 ```
 
-
-## Run cellid
-
-```{r, eval = F}
-cell(cell.args = cell.args,
-     # cell.command = "cellBUILTIN",
-     # cell.command = "~/Software/cellID-linux/cell",
-     cell.command = "~/Projects/Rdevel/rcell2/bin/cell.sh",
-     position.time.pattern = "time\\d+",
-     no_cores = 1, dry = T)
-```
-
-# Load and check cell data
 
 ```{r}
-path <- "../data/image_samples/"
-path <- "../data/time_series_image_samples/"
+rcell2::cell2(arguments = arguments, 
+              cell.command = "~/Software/cellID-linux/cell", # cell.command = system.file("cell", package = "rcell2", mustWork = T),
+              dry = F, no_cores = 1, label_cells_in_bf = T)
+```
 
-cell.data.old <- rcell2::cell.load.alt(path =  path)
-# cell_data.new <- rcell2::load_cell_data(path = path)
+# Load cell data
 
-cdata <- cell.data.old$d %>% select(ucid, cellID, t.frame, pos, xpos, ypos, a.tot, cf.y)
+```{r}
+# cell.data.old <- rcell2::cell.load.alt(path =  path)
+cell_data.new <- rcell2::load_cell_data(path = path)
+
+cell_data.new$data %>% filter(cellID == 1003) %>% 
+  rcell2::magickCell(paths = cell_data.new$images, return_single_imgs = T, cell_resize = 200)
+```
+
+# Load cell mask coords
+
+From new -m option
+
+```{r}
+masks <- read_tsv("~/Software/cellID-linux/test_data_tmp/Position01/out_all_masks.tsv")
+
+masks
 ```
 
 ```{r}
-cdata
-cdata %>% group_by(ucid) %>% 
-    summarise(n_frames = n(), 
-              t_frames = paste(t.frame, collapse = "_")) %>% 
-    select(-ucid) %>% unique()
+p <- ggplot(masks) + geom_tile(aes(x=xpos, y=ypos)) + facet_grid(flag~pixtype)
+
+ggsave("masks.pdf", p, device = "pdf")
+
+p
 ```
 
+# Sin tframes
 
+## Arguments setup
 
-# Explicación de los time series arguments
+```{r}
+path <- "/home/nicomic/Projects/Rdevel/rcell2/data/image_samples/"
+# path <- "/home/nicomic/Projects/Rdevel/rcell2/data/time_series_image_samples/"
+parameters <- "/home/nicomic/Software/cellID-linux/test_data_andy/Position001/parameters_vcellid_out.txt"
 
-En cada archivo tiene que haber una lista con todos los tiempos para una sola posición.
-
+arguments <- rcell2::cellArgs2(path = path, parameters = parameters, 
+                               file.pattern = "^(BF|[A-Z]FP)_Position(\\d+)().tif$")
+arguments
 ```
-cell -b /home/nicomic/split/Position01/bf_vcellid.txt -f /home/nicomic/split/Position01/fl_vcellid.txt -o /home/nicomic/split/Position01/out -p /home/nicomic/split/Position01/parameters_vcellid_out.txt
+
+## Run CellID
+
+```{r}
+rcell2::cell2(arguments = arguments, 
+              cell.command = "~/Software/cellID-linux/cell", 
+              dry = F, no_cores = 7)
 ```
 
-En `bf_vcellid.txt` solo van los BF:
-
-    /home/nicomic/split/BF_Position01_time01.tif
-    /home/nicomic/split/BF_Position01_time02.tif
-    /home/nicomic/split/BF_Position01_time03.tif
-
-En `fl_vcellid.txt` se meten todos los canalas de fluorescencia:
-
-    /home/nicomic/split/YFP_Position01_time01.tif
-    /home/nicomic/split/YFP_Position01_time02.tif
-    /home/nicomic/split/YFP_Position01_time03.tif
-
-El argumento de "out" y de los parámetos no cambia:
-
-`parameters_vcellid_out.txt`
-
-     max_split_over_minor 0.66
-     max_dist_over_waist 8.00
-     max_pixels_per_cell 1500
-     min_pixels_per_cell 75
-     background_reject_factor 1.00
-     tracking_comparison 0.20
-     image_type brightfield
-     bf_fl_mapping list
-    

@@ -16,17 +16,19 @@ shinyAppServer <-
       # Initialize cdata
       cdata$filter <- T
       if(!{cdata$t.frame %>% unique() %>% length()} == 1){
+        print("Initializing cell_unique_id_field to 'ucid_time'")
         cdata <- mutate(cdata, ucid_time = paste0(ucid, "_", t.frame))
         cdata.cell_unique_id_field <- "ucid_time"
       } else {
+        print("Initializing cell_unique_id_field to 'ucid'")
         cdata.cell_unique_id_field <- "ucid"
       }
       values$cdata <- cdata
       
       # Initialize cfilter
-      if(length(filters) > 0) { values$stringFilters <- filters} else {values$stringFilters <- c()}  # Load initial filters if any
-      values$stringFiltersSelected <- c()
-      values$cfilter <- data.frame(ucid = cdata[,"ucid"], filter = T)
+      # values$cfilter <- data.frame(ucid = cdata[,"ucid"], filter = T)
+      # if(length(filters) > 0) { values$stringFilters <- filters} else {values$stringFilters <- c()}  # Load initial filters if any
+      # values$stringFiltersSelected <- c()
 
       # Initialize sample seed
       values$seed <- seed
@@ -81,14 +83,19 @@ shinyAppServer <-
           # Update reactive cdata and cfilter
           # print(identical(values$cdata, result$cdata))  # Why??
           values$cdata <- result$cdata
-          values$cfilter <- result$cfilter
+          # values$cfilter <- result$cfilter
 
         } else {
           print("-- No polygon filters selected")
 
           # If no polygon filters are selected, reset that shit!
           values$cdata <- cdata
-          values$cfilter <- data.frame(ucid = cdata[,"ucid"], filter = T)
+          # values$cfilter <- data.frame(ucid = cdata[,"ucid"], filter = T)
+        }
+        
+        if(!isFALSE(filter_progress_file)){
+          print(paste("-- Saving filter progress to:", filter_progress_file))
+          saveRDS(object = rv$filters, file = filter_progress_file)
         }
 
         print(paste("-- Remaining cells:", sum(isolate(values$cdata$filter))))  # Isolate from values$cdata
@@ -147,6 +154,21 @@ shinyAppServer <-
                     # Vertical brushing should be disabled
                     # Might be a good excuse to generalize drawing of polygons in plots where only one dimension is shared
                   }
+                  
+                  if(plot.type == "Pics"){
+                    print("-- Pics plot!")
+                    cuts_x <- floor(input$plotDimX / boxSize)
+                    cuts_y <- floor(input$plotDimY / boxSize)
+                    
+                    p <- cellSpreadPlot(cdata = d, paths = paths, 
+                                        x.cuts = cuts_x, y.cuts = cuts_y, 
+                                        ch = input$ch, xvar = input$x, yvar = input$y, 
+                                        underlay_points = F, 
+                                        overlay_points = F,
+                                        equalize_images = input$equalize_pics,
+                                        normalize_images = input$normalize_pics,
+                                        boxSize = boxSize)[[1]]
+                  }
 
                   if(plot.type == "Hex"){
                     print("-- Draw Hex plot...")
@@ -181,9 +203,13 @@ shinyAppServer <-
 
                     # Dotplot
                     p <- ggplot(data = d, aes(x = eval(parse(text=input$x)), y = eval(parse(text=input$y)))) +
-                      geom_point(
-                        # aes(color = factor(treatment), shape = factor(treatment)),
-                        alpha = 0.5) +
+                      {
+                      if(input$x == "t.frame") 
+                        geom_line(aes(group=ucid, color=factor(ucid)), alpha = 0.5) 
+                      else 
+                        geom_path(aes(group=ucid, color=factor(ucid)), alpha = 0.5)
+                      } + 
+                      geom_point(alpha = 0.5) + 
                       geom_rug(col=grDevices::rgb(.5,0,0,alpha=.05)) +
                       xlab(input$x) + ylab(input$y)
                   }
@@ -228,29 +254,38 @@ shinyAppServer <-
                   }
 
                   # Draw facets if any
-                  if(input$facet != "") {
+                  if(input$facet != "" & plot.type != "Pics") {
                     facet <- parse(text=input$facet)
 
-                    if(facet_grid_option) {
-                      p <- p + facet_grid(eval(facet), scales = facets_scale_free)
+                    if(input$facet_grid) {
+                      p <- p + facet_grid(eval(facet), scales = input$facet_scale)
                     } else {
-                      p <- p + facet_wrap(eval(facet), scales = facets_scale_free)
+                      p <- p + facet_wrap(eval(facet), scales = input$facet_scale)
+                    }
+                  }
+                  
+                  # Adjust plot limits
+                  if(is.null(facets_scale_free) & plot.type != "Pics") {
+                    if(plot.type != "Hex"){
+                      if(plot.type == "Density 1D") {
+                        p <- p + coord_cartesian(xlim = range(d[[input$x]]))
+                      } else {
+                        p <- p + coord_cartesian(xlim = range(d[[input$x]]), ylim = range(d[[input$y]]))
+                      }
+                    } else {
+                      p <- p + coord_cartesian(xlim = range(d$x), ylim = range(d$y))
                     }
                   }
 
-                  if(plot.type != "Hex"){
-                    if(plot.type == "Density 1D") {
-                      p <- p + coord_cartesian(xlim = range(d[[input$x]]))
-                    } else {
-                      p <- p + coord_cartesian(xlim = range(d[[input$x]]), ylim = range(d[[input$y]]))
-                    }
-                  } else {
-                    p <- p + coord_cartesian(xlim = range(d$x), ylim = range(d$y))
+                  # Adjust theme
+                  if(plot.type != "Pics"){
+                    p <- p + 
+                      theme_minimal() + 
+                      theme(text = element_text(size=20),
+                            legend.position = "none")
                   }
 
                   print("-- Plotting...")
-                  p <- p + theme_minimal() + theme(text = element_text(size=20))
-
                   p
 
                 },
@@ -334,7 +369,8 @@ shinyAppServer <-
           positions <- rangeExpand(input$position, max(paths$pos))
 
           p <- subset(paths, pos %in% positions)
-          d <- subset(values$cdata, pos %in% positions & filter == TRUE)
+          d <- subset(values$cdata, pos %in% positions)
+          if(!input$suspend_filters) d <- subset(d, filter == TRUE)
 
           # Y solamente con las filas que están en el brush
           d <- d[d[,input$x] >= brush_limits[1] &
@@ -419,8 +455,9 @@ shinyAppServer <-
           # Me quedo con las posiciones que me interesan
           # positions <- getPositions(input$position, max(paths$pos))
           positions <- rangeExpand(input$position, max(paths$pos))
-          d <- subset(values$cdata, pos %in% positions & filter == TRUE)
           p <- subset(paths, pos %in% positions)
+          d <- subset(values$cdata, pos %in% positions)
+          if(!input$suspend_filters) d <- subset(d, filter == TRUE)
 
           # # Copiado del bloque del brush
           # if(input$facet != ""){
@@ -504,7 +541,8 @@ shinyAppServer <-
           # Me quedo con las posiciones que me interesan
           positions <- rangeExpand(input$position, max(paths$pos))
           p <- subset(paths, pos %in% positions)
-          d <- subset(values$cdata, pos %in% positions & filter == TRUE)
+          d <- subset(values$cdata, pos %in% positions)
+          if(!input$suspend_filters) d <- subset(d, filter == TRUE)
           
           # El nearest hay que hacerlo despues de filtrar por facet
           print("-- Hover names:")

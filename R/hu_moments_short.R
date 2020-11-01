@@ -115,32 +115,210 @@ hues_from_xy <-  function(pic_df, split_col = "cellID"){
 
 #' Generate Hu moments from XY coordinates dataframe
 #' 
-#' This function requires a CellID column to split the coordinates by.
+#' This function requires a CellID column to split the coordinates by. Optional cell-wise parallelization.
 #' 
-hues_from_xy2 <-  function(pic_df, split_col = "cellID"){
+#' @param coords_df A data frame with XY coordinates, containing columns "x", "y", and the column named by the \code{split_col} parameter.
+#' @param split_col A string matching the name of the colum used to split the dataframe into individual shapes.
+#' 
+#' @return A data frame with Hu moments for each split of the input, identified by \code{split_col}.
+#' @importFrom data.table rbindlist
+#' @rawNamespace import(foreach, except = c("when", "accumulate"))
+#' @import parallel doParallel 
+#' @export
+#' 
+hues_from_xy2 <-  function(coords_df, split_col = "cellID"){
   # Split the dataframe by cellID
-  pic_df_split <- split(pic_df, pic_df[[split_col]])
+  pic_df_split <- base::split(coords_df, coords_df[[split_col]], drop = T)
+  split_col <- split_col
   
   # Compute Hu moments for each cellID's boundary mask XY coordinates
-  cl <- parallel::makeCluster(max(1, parallel::detectCores() - 1))
-  hues <- parallel::parLapply(cl, 
-                              pic_df_split, 
-                              fun = function(cell_coords_df){
+  n_cores <- max(1, parallel::detectCores() - 1)
+  cat(paste("Message from hues_from_xy2: Parallel Hu with", n_cores, "threads.\n"))
+  cl <- parallel::makeCluster(n_cores)
+  # Export objects to cluster
+  parallel::clusterExport(cl, "split_col", envir = environment())
+  parallel::clusterExport(cl, "hu.moments")
+  doParallel::registerDoParallel(cl)
+  
+  # Run parallelized computation
+  hues <- foreach(cell_coords_df=pic_df_split) %dopar% {
+    # Get "id" for the current shape
+    shape_id <- unique(cell_coords_df[[split_col]])
+                                
     # Convert dataframe to matrix
     xy <- as.matrix(cell_coords_df[,c("x", "y")])
     # Rename XY columns appropriately
     colnames(xy) <- c("dim1", "dim2")
     
-    # Return a named vector with the cell ids and the named hu moments
-    return_vector <- c(unique(cell_coords_df[[split_col]]), rcell2::hu.moments(xy))
-    names(return_vector)[1] <- split_col
+    # Compute hu moments
+    xy_humoments <- as.list(hu.moments(xy))
+    xy_humoments[split_col] <- as.character.factor(shape_id)
     
-    return_vector
-  })
+    # Return as data frame
+    as.data.frame(xy_humoments)
+  }
+  # Bind results
+  hues_bound <- data.table::rbindlist(hues)
   parallel::stopCluster(cl)
+  return(hues_bound)  
+}
+
+#' Generate Hu moments from XY coordinates TSV file
+#' 
+#' Cells in the dataframe are split by cellID, t.frame, flag, and pixtype by default.
+#' 
+#' Optional filtering by shape type (boundary or interior) and CellID flag number.
+#' 
+#' Optional cell-wise parallelization.
+#' 
+#' @param masks_tsv_path A path to the TSV file holding XY coordinates, from CellID's output with "-t" option.
+#' @param .parallel Enable cell-wise parallelization using parallel::parLapply
+#' @param shape_pixtype Default "b" for Hu moments based on boundary points. A character vector containing any of c("b", "i").
+#' @param shape_flagtype Default 0 for Hu moments based on flag value 0. Can be any of the integer flag values present in the \code{out_bf_fl_mapping} CellID files.
+#' @param cdata_subset Subset of cdata with unique rows, and only pos, t.frame and cellID columns.
+#' @param position Microscope position number (int) that corresponds to current TSV file, used for filtering if \code{cdata_subset} is not NULL.
+#' @import readr
+#' @export
+#' 
+hues_from_tsv2 <- function(masks_tsv_path, .parallel = F,
+                           shape_pixtype = NULL, shape_flagtype = NULL, 
+                           cdata_subset = NULL, position = NULL){
+  # Add "id" column
+  cat("\nMessage from hues_from_tsv2: reading TSV id data...\n")
+  masks_coords <- readr::read_tsv(masks_tsv_path, progress = TRUE,
+                                  col_types = cols(cellID = readr::col_integer(),
+                                                   t.frame = readr::col_integer(),
+                                                   flag = readr::col_integer(),
+                                                   x = readr::col_integer(),
+                                                   y = readr::col_integer(),
+                                                   pixtype = readr::col_factor(levels = c("b", "i")))
+                                  ) %>% 
+    {if(!is.null(shape_pixtype)) filter(., pixtype %in% shape_pixtype) else .} %>% 
+    {if(!is.null(shape_flagtype)) filter(., flag %in% shape_flagtype) else .} %>% 
+    mutate(id = factor(paste(cellID, t.frame, flag, pixtype,sep = "_")))
   
-  # Bind rows from all cellIDs and return
-  return(bind_rows(hues))
+  if(!is.null(cdata_subset)) 
+    masks_coords <- dplyr::semi_join(mutate(masks_coords, pos = position), 
+                                     cdata_subset, by = c("cellID", "pos", "t.frame"))
+    
+  # Compute Hu moments
+  if(!.parallel) {
+    hues_df <- hues_from_xy(masks_coords, split_col="id")
+  } else {
+    hues_df <- hues_from_xy2(coords_df = masks_coords, split_col="id")
+  }
+  cat(paste("Message from hues_from_tsv2: joining id data...\n"))
+  hues_by_cell <- masks_coords %>% 
+    select(cellID, t.frame, flag, pixtype, id) %>% unique() %>%
+    left_join(hues_df, by = "id") %>%
+    select(-id)
+  
+  cat(paste("Message from hues_from_tsv2: done!\n"))
+  
+  return(hues_by_cell)  # to hues_from_tsv_files2()
+}
+
+#' Generate Hu moments data frame from one or more TSV files
+#' 
+#' The required TSV are generated by the mask_mod branch of the CellID program found at: https://github.com/darksideoftheshmoo/cellID-linux/tree/mask_mod
+#' 
+#' To play with the XY coordinates of the TIFF masks you may want to set \code{return_points = T}.
+#' 
+#' @param tsv_files paths to the XY coordinates TSV files from CellID mask_mod "-t" option.
+#' @param return_points if TRUE it will add a "masks" dataframe to the cell_data object, containing the mask coordinates.
+#' @param parralellize Enable cell-wise parallelization using parallel::parLapply
+#' @param shape_pixtype Default "b" for Hu moments based on boundary points. A character vector containing any of c("b", "i").
+#' @param shape_flagtype Default 0 for Hu moments based on flag value 0. Can be any of the integer flag values present in the \code{out_bf_fl_mapping} CellID files.
+#' @param cdata_subset Subset of cdata with unique rows, and only pos, t.frame and cellID columns.
+#' @import dplyr
+#' @export
+#' 
+hues_from_tsv_files2 <- function(tsv_files_df, return_points = F, parralellize = T, 
+                                 shape_pixtype = NULL, shape_flagtype = NULL, cdata_subset = NULL){
+  
+  if(!is.data.frame(tsv_files_df)) stop("Input error: tsv_files_df is not a data.frame.")
+  if(!all(c("pos", "path") %in% names(tsv_files_df))) stop("Input error: names 'pos' and 'path' not found.")
+  
+  hues_df_list <- list()
+  for(position in tsv_files_df[,"pos", drop = TRUE]) {
+    cat("\nComputing Hu moments for position:", position)
+    
+    masks_tsv_path <- tsv_files_df %>% 
+      filter(pos == position)%>% 
+      .[,"path", drop = TRUE] %>% 
+      {if(length(.) != 1) stop("Error in append_hues2: more than one TSV file per position") else .}
+  
+    hues_df <- 
+      hues_from_tsv2(masks_tsv_path = masks_tsv_path,
+                     .parallel = parralellize, 
+                     cdata_subset = cdata_subset,
+                     shape_pixtype = shape_pixtype, 
+                     shape_flagtype = shape_flagtype,
+                     position = position) %>% 
+      mutate(pos = as.integer(position))
+    
+    hues_df_list[[position]] <- hues_df
+  }
+  
+  return(bind_rows(hues_df_list))
+}
+
+
+#' Add Hu moments data.frame to a cell_data object
+#' 
+#' The required TSV are generated by the mask_mod branch of the CellID program found at: https://github.com/darksideoftheshmoo/cellID-linux/tree/mask_mod
+#' 
+#' To play with the XY coordinates of the TIFF masks you may want to set \code{return_points = T}.
+#' 
+#' @param tsv_files Paths to the XY coordinates TSV files from CellID mask_mod "-t" option.
+#' @param cell_data NULL list by default. You may pass a cell.data list object from Rcell2 load_cell_data, for convenience, or just the cdata dataframe as \code{list(data = cdata)}.
+#' @param return_points if TRUE it will add a "masks" dataframe to the cell_data object, containing the mask coordinates.
+#' @param shape_pixtype Default "b" for Hu moments based on boundary points. A character vector containing any of c("b", "i").
+#' @param shape_flagtype Default 0 for Hu moments based on flag value 0. Can be any of the integer flag values present in the \code{out_bf_fl_mapping} CellID files.
+#' @param overwrite Default FALSE, overwrite Hu moments element in the input list if already present.
+#' @export
+#' 
+#' @return The Hu moments dataframe usis assgned to the input list as an element named "Hu_moments".
+#' 
+append_hues2 <- function(tsv_files_df, 
+                         cell_data = NULL, 
+                         return_points = F,
+                         parralellize = T,
+                         shape_pixtype = "b",
+                         shape_flagtype = 0,
+                         overwrite = F
+                         ){
+  
+  if(return_points) 
+    stop("return_points option not implemented yet :/")
+  if("Hu_moments" %in% names(cell_data) && !overwrite) 
+    stop("cell_data already has a Hu_moments element, use 'overwrite=TRUE' to force it.")
+  
+  if(!is.null(cell_data)) 
+    cdata_subset <- unique(cell_data[["data"]][, c("cellID", "pos", "t.frame")]) 
+  else 
+    cdata_subset <- NULL
+  
+  hues_df <- hues_from_tsv_files2(tsv_files_df, 
+                                  return_points = F, 
+                                  parralellize = parralellize,
+                                  shape_pixtype = shape_pixtype, 
+                                  shape_flagtype = 0, 
+                                  cdata_subset = cdata_subset)
+  
+  # Append Hu moment data to cell_data object
+  if(is.null(cell_data)) list(Hu_moments = hues_df) 
+  else cell_data[["Hu_moments"]] <- hues_df
+
+  # if(return_points){
+  #   masks_df <- bind_rows(
+  #     lapply(pic.and.hues.dfs, FUN = function(l) l[["pic_df"]])
+  #   )
+  # 
+  #   cell_data[["masks"]] <- masks_df
+  # }
+
+  return(cell_data)
 }
 
 #' Append Hu moments columns to data on a cell_data object

@@ -1,14 +1,20 @@
 #' Armar mosaicos cuadrados a partir de un vector de imagenes en magick de cualquier longitud
 #' @param images A magick image vector, with images of the same size preferably.
+#' @param nRow An integer indicating number of rows. If specified, nCol must be specified too.
+#' @param nCol An integer indicating number of rows. If specified, nRow must be specified too.
 #' @return A single magick image of the squared tile.
 # @examples
 # square_tile(images)
 #' @import magick dplyr
 #' @rawNamespace import(foreach, except = c("when", "accumulate"))
 #' @export
-square_tile <- function(images){
-  nRow <- ceiling(sqrt(length(images)))
-  nCol <- ceiling(length(images)/nRow)
+square_tile <- function(images, nRow = NULL, nCol = NULL){
+  
+  if(sum(is.null(nRow), is.null(nCol)) == 1) 
+    stop("square_tile error: if at least one of nRow or nCol is specified, both of them must.")
+  
+  if(any(is.null(nRow), is.null(nCol))) nRow <- ceiling(sqrt(length(images)))
+  if(any(is.null(nRow), is.null(nCol))) nCol <- ceiling(length(images)/nRow)
   
   image.tile <- foreach::foreach(tile_row=0:(nRow-1), .combine=c) %do% {
     
@@ -22,11 +28,265 @@ square_tile <- function(images){
     magick::image_append(images[row_images_index])
   }
   
-  image.tile <- magick::image_append(image.tile, 
-                                     stack = T)
+  image.tile <- magick::image_append(image.tile, stack = T)
   
-  if(length(images) > 50) warning("square_tile says: you have more than 50 images in the input array ¿Are you sure that this is ok?")
+  if(length(images) > 50) message("square_tile says: you have more than 50 images in the input array ¿Are you sure that this is ok?")
   return(image.tile)
+}
+
+#' Test whether all elements in a vector are unique
+#' 
+#' Uses \code{length()}.
+#' 
+all.unique <- function(test_vector){
+  length(test_vector) == length(unique(test_vector))
+}
+
+#' cellMagick configured for prodicing a ucid's gif
+#' 
+#' @inheritParams magickCell
+#' @param animation_delay Delay between animation frames in seconds.
+#' @param stack_channels_horizontally Time increases from left to right (TRUE) or from up to down (FALSE).
+#' @param channels Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.
+#' @param ... Arguments passed on to magickCell.
+#' 
+cellGif <- function(cdata,
+                    paths,
+                    equalize_images = F,
+                    normalize_images = F,
+                    channels = c("BF.out"), 
+                    animation_delay = 1/3,
+                    id_column = "ucid", time_colum = "t.frame",
+                    stack_channels_horizontally = TRUE,
+                    ...){
+  
+  if(!all.unique(cdata[,id_column,drop=T]) & length(unique(cdata[,id_column,drop=T])) > 1)
+    stop(paste0("Error in cellGif: id column '", 
+                id_column, 
+                "' is not a primary key."))
+  
+  img <- arrange(cdata, !!as.symbol(time_colum)) %>% 
+    magickCell(paths,
+               equalize_images = equalize_images, 
+               normalize_images = normalize_images,
+               cell_resize = 200,
+               ch = channels,
+               return_single_imgs = TRUE,
+               stack_vertical_first = !stack_channels_horizontally,
+               ...) %>% 
+    magick::image_animate(delay = animation_delay*100)
+  
+  return(img)
+}
+
+#' cellMagick configured for prodicing a ucid's strip
+#' 
+#' @inheritParams magickCell
+#' @param stack_time_horizontally Time increases from left to right (TRUE) or from up to down (FALSE).
+#' @param channels Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.
+#' @param ... Arguments passed on to magickCell.
+#' 
+cellStrip <- function(cdata,
+                      paths,
+                      equalize_images = F,
+                      normalize_images = F,
+                      channels = c("BF.out"), 
+                      animation_delay = 1/3,
+                      stack_time_horizontally = TRUE,
+                      id_column = "ucid", time_colum = "t.frame",
+                      ...){
+  
+  if(!all.unique(cdata[,id_column,drop=T]) & length(unique(cdata[,id_column,drop=T])) > 1)
+    stop(paste0("Error in cellGif: id column '", 
+                id_column, 
+                "' is not a primary key."))
+  
+  img <- arrange(cdata, !!as.symbol(time_colum)) %>% 
+    magickCell(paths,
+               equalize_images = equalize_images, 
+               normalize_images = normalize_images,
+               cell_resize = 200,
+               ch = channels,
+               return_single_imgs = TRUE,
+               stack_vertical_first = stack_time_horizontally,
+               ...)
+  
+  magick::image_append(img, stack = !stack_time_horizontally)
+}
+
+updateList <- function(l1, l2){
+  if(!is.list(l2) | !is.list(l1)) stop("Error: input must be two named lists.")
+  common.names <- names(l2)[names(l2) %in% names(l1)]
+  l1[common.names] <- l2[common.names]
+  return(l1)
+}
+
+#' 2D binning of data and tiling of cell pictures
+#' 
+#' @inheritParams magickCell
+#' @param xvar,yvar Strings indicating names for the variables to plot in the horizontal (x) and vertical (y) axis.
+#' @param x.cuts,y.cuts Integers indicating the number of cuts for each variable.
+#' @param for_plotting Return value changes to list of elements important for plotting.
+#' @param ... Arguments passed on to magickCell.
+#' 
+cellSpread <- function(cdata, paths,
+                       ch = "BF.out", boxSize = 80,
+                       xvar = "a.tot", yvar="fft.stat",
+                       x.cuts = 7, y.cuts = 7,
+                       for_plotting = F, ...){
+  
+  cdata.binned <- cdata
+  
+  x_data <- cdata.binned[,xvar, drop =T]
+  y_data <- cdata.binned[,yvar, drop =T]
+  
+  cdata.binned$x_bins <- cut(x_data, breaks = x.cuts, ordered_result=T, dig.lab = 2)  #, labels = 1:x.cuts)  # labels = FALSE
+  cdata.binned$y_bins <- cut(y_data, breaks = y.cuts, ordered_result=T, dig.lab = 2)  #, labels = 1:y.cuts)  # labels = FALSE
+  
+  # cdata.binned %>% group_by(x_bins,
+  #                           y_bins) %>% 
+  #   sample_n(1) %>% select(ucid, t.frame, x_bins, y_bins) %>% 
+  #   arrange(desc(y_bins), x_bins)
+  
+  blank_image <- magick::image_blank(boxSize,boxSize,color = "black") %>% 
+    magick::image_annotate(text = "NA", gravity = "Center", color = "white") %>% 
+    magick::image_border("green","1x1")
+  cell_tile_array <- blank_image  # initialize
+  
+  for(channel in ch){
+    image_array <- blank_image  # initialize or reset
+    
+    for(row_i in 1:y.cuts){
+      for(col_i in 1:x.cuts){
+        
+        row_level <- rev(levels(cdata.binned$y_bins))[row_i]
+        col_level <- levels(cdata.binned$x_bins)[col_i]
+        
+        cdata.bin <- cdata.binned[cdata.binned$x_bins == col_level & cdata.binned$y_bins == row_level,]
+        cdata.bin_n <- nrow(cdata.bin)
+        
+        if(cdata.bin_n >= 1){
+          cdata.bin.one <- sample_n(cdata.bin, 1)
+          
+          img <- magickCell(cdata = cdata.bin.one, 
+                            paths = paths, return_single_imgs = T,
+                            ch = channel, boxSize = boxSize, ...) %>% 
+            magick::image_annotate(text = cdata.bin_n, gravity = "northeast", 
+                                   color = "white", boxcolor = "black")
+        } else {
+          img <- blank_image
+        }
+        
+        image_array <- c(image_array, img)
+      }
+    }
+    
+    cell_tile <- square_tile(image_array[-1], nRow = y.cuts, nCol = x.cuts)
+    
+    axis_text_box <- magick::image_blank(width = boxSize, height = boxSize,  color = "white")
+    axis_label_box_x <- magick::image_blank(width = boxSize*(x.cuts+1), height = boxSize/2, color = "white") %>% 
+      image_annotate(text = xvar, size = boxSize/4, gravity = "Center", color = "black", degrees = 0)
+    axis_label_box_y <- magick::image_blank(width = boxSize/2, height = boxSize*(y.cuts+1), color = "white") %>% 
+      image_annotate(text = yvar, size = boxSize/4, gravity = "Center", color = "black", degrees = -90)
+    
+    axis_text_boxes_x <- 
+      rep(axis_text_box, x.cuts) %>% 
+      magick::image_annotate(text = levels(cdata.binned$x_bins), 
+                             gravity = "Center", color = "black", degrees = -45) %>% 
+      image_append()
+    
+    axis_text_boxes_y <- 
+      rep(axis_text_box, x.cuts) %>% 
+      magick::image_annotate(text = rev(levels(cdata.binned$y_bins)), 
+                             gravity = "Center", color = "black", degrees = -45) %>% 
+      image_append(stack = T)
+    
+    if(for_plotting){
+      cell_tile_labeled <- cell_tile
+    } else {
+      cell_tile_labeled <- cell_tile %>% 
+        {magick::image_append(c(., axis_text_boxes_x, axis_label_box_x), stack = T)} %>% 
+        {magick::image_append(c(axis_label_box_y, axis_text_boxes_y, .), stack = F)}
+    }
+
+    cell_tile_array <- c(cell_tile_array, cell_tile_labeled)
+  }
+
+  if(for_plotting)
+    return(list(cell_tiles = cell_tile_array[-1],
+                channels = ch,
+                row_levels = rev(levels(cdata.binned$y_bins)),
+                col_levels = levels(cdata.binned$x_bins),
+                xvar = xvar,
+                yvar = yvar,
+                x.cuts = x.cuts,
+                y.cuts = y.cuts))
+  else 
+    return(cell_tile_array[-1])
+}
+
+#' Plot for 2D binning of data and tiling of cell pictures
+#' 
+#' @inheritParams cellSpread
+#' @param overlay_points Overlay data points to the image plot.
+#' @param underlay_points Underlay data points to the image plot.
+#' @param draw_contour_breaks Overlay a ggplot2::stat_density2d layer. If TRUE, use the default breaks. Otherwise NULL for none, or a numeric vector for the density breaks.
+#' 
+cellSpreadPlot <- function(cdata, paths,
+                           ch = "BF.out", boxSize = 80,
+                           xvar = "a.tot", yvar="fft.stat",
+                           overlay_points = F, underlay_points = F,
+                           draw_contour_breaks = NULL,
+                           x.cuts = 7, y.cuts = 7, ...){
+  
+  plot_list <- list()
+  
+  xvar_sym <- as.symbol(xvar)
+  yvar_sym <- as.symbol(yvar)
+  
+  for(channel in ch){
+    cell_tile <- cellSpread(cdata = cdata, paths = paths, ch = channel, boxSize = boxSize, 
+                            xvar, yvar, x.cuts = x.cuts, y.cuts = y.cuts, for_plotting = T, ...)
+    
+    raster <- as.raster(cell_tile$cell_tiles[1])
+    
+    p <- ggplot(cdata,
+                aes(x = !!xvar_sym, 
+                    y = !!yvar_sym)) + 
+      {if(underlay_points) geom_point() else NULL} +
+      # annotation_raster(raster=raster, -Inf, Inf, -Inf, Inf) +
+      annotation_raster(raster=raster,
+                        xmin = min(cdata[, xvar, drop = T]),
+                        xmax = max(cdata[, xvar, drop = T]),
+                        ymin = min(cdata[, yvar, drop = T]),
+                        ymax = max(cdata[, yvar, drop = T])) +
+      {if(overlay_points) geom_point(shape = 21, colour = alpha("black", 0.3), 
+                                     fill = alpha("white", 0.1), stroke = 1.25) else NULL} +
+      geom_blank() +
+      scale_x_continuous(limits = range(cdata[, xvar, drop = T]),
+                         expand = expansion(1/100)) +
+      scale_y_continuous(limits = range(cdata[, yvar, drop = T]),
+                         expand = expansion(1/100)) +
+      theme_minimal() +
+      theme(legend.position = "none")  #, plot.margin = unit(rep(0,4), "mm"))
+    
+    if(!is.null(draw_contour_breaks)){
+      if(isTRUE(draw_contour_breaks)) draw_contour_breaks <- 2^-seq(8,8+2*4,by=2)
+      p <- p +
+        stat_density2d(breaks=draw_contour_breaks, alpha = .4,
+                       geom="contour", adjust = 1.25, color = "white",
+                       # bins=4, 
+                       size= 2)
+      # p + geom_density_2d(color = "white", bins = 20, breaks = )
+      # p + stat_density2d(aes(color = ..level..))
+    }
+    
+    plot_list[[channel]] <- p
+  }
+  
+  # raster <- p$layers[[1]]$geom_params$raster
+  # plot(raster)
+  return(plot_list)
 }
 
 #' Funcion copada para mostrar fotos basada en magick
@@ -52,12 +312,13 @@ square_tile <- function(images){
 #' @param equalize_images Use magick's function to "equalize" the image when TRUE (FALSE by default).
 #' @param normalize_images Use magick's function to "normalize" the image when TRUE (FALSE by default).
 #' @param ch Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.
-#' @param sortVar Variable used to sort the cells. NULL by default, to preserve the original order.
+#' @param sortVar Variable name used to sort the rows after sampling if a \code{seed} was specified. NULL by default, to preserve the original or random sampling order.
 #' @param seed Seed value for sampling of cell images. NULL by default, to disable sampling.
 #' @param .debug Print more messages if TRUE.
 #' @param return_single_imgs If TRUE, return a vector of images instead of a tile.
 #' @param return_ucid_df If TRUE, return is a list of magick images and ucid dataframes.
 #' @param  annotation_params Set to NULL to skip annotations, or a named list with values for magick::annotate options (one or more of the names "color" "background" "size"). Note that size close to zero can be invisible.
+#' @param  stack_vertical_first Set to TRUE to stack images vertically first (useful when \code{return_single_imgs = T}).
 #' @return A list of two elements: the magick image and the ucids in the image.
 # @examples
 # magickCell(cdataFiltered, sample_tiff$file, position = sample_tiff$pos, resize_string = "1000x1000")
@@ -67,7 +328,7 @@ square_tile <- function(images){
 magickCell <- function(cdata, paths,
                        max_composite_size = 1000, 
                        cell_resize = NULL,
-                       boxSize = 50, 
+                       boxSize = 80, 
                        n = 100,
                        equalize_images = F, 
                        normalize_images = F,
@@ -75,9 +336,11 @@ magickCell <- function(cdata, paths,
                        sortVar = NULL,
                        seed = NULL, 
                        .debug=FALSE, 
-                       return_single_imgs = FALSE, return_ucid_df = F,
+                       return_single_imgs = FALSE, 
+                       return_ucid_df = FALSE,
                        annotation_params = list(color = "white", 
-                                                background = "black")
+                                                background = "black"),
+                       stack_vertical_first = FALSE
                        ){
   if(.debug) print("F8")
 
@@ -86,6 +349,9 @@ magickCell <- function(cdata, paths,
   cell_resize_string <- paste0(cell_resize, "x", cell_resize)
   
   # Filter paths by pos and t.frame on cdata
+  if(!all(ch %in% paths[,"channel",drop=T])) stop(paste0("magickCell error: channels '",
+                                                         ch[!ch %in% paths[,"channel",drop=T]],
+                                                         "' are not in the paths dataframe."))
   paths <- filter(paths, pos %in% cdata[,"pos", drop = T] & t.frame %in% cdata[,"t.frame", drop = T])
   
   # Add file path column if absent
@@ -95,18 +361,12 @@ magickCell <- function(cdata, paths,
   }
   
   # Annotation parameters
-  updateList <- function(l1, l2){
-    if(!is.list(l2) | !is.list(l1)) stop("Error: annotation_params must be a named list.")
-    common.names <- names(l2)[names(l2) %in% names(l1)]
-    l1[common.names] <- l2[common.names]
-    return(l1)
-  }
-  # annotation_params = list(size = 2, color = NULL)
   annotation_params_default = list(color = "white",
                                    background = "black",
                                    size = cell_resize/7)
-  if(!is.null(annotation_params)) annotation_params <- updateList(annotation_params_default, 
-                                                                  annotation_params)
+  if(!is.null(annotation_params)) 
+    annotation_params <- updateList(annotation_params_default, 
+                                    annotation_params)
   
 
   # Intento con magick
@@ -191,7 +451,7 @@ magickCell <- function(cdata, paths,
       # Add black border
       magick::image_border("black","1x1") %>% 
       # Tile horizontally
-      magick::image_append()
+      magick::image_append(stack = stack_vertical_first)
     }
 
   stopifnot(length(imga) == nrow(cdataSample)) # Checks
@@ -216,9 +476,10 @@ magickCell <- function(cdata, paths,
       magick::image_blank(boxSize, boxSize, "black") %>%
         magick::image_resize(cell_resize_string) %>%
         magick::image_composite(i) }) %>%
-      magick::image_append()
+      magick::image_append(stack = stack_vertical_first)
   }
-  imgb <- magick::image_append(imgb, stack = T)
+  imgb <- magick::image_append(imgb, 
+                               stack = !stack_vertical_first)
 
   if(nRow*cell_resize >= max_composite_size || nCol*cell_resize >= max_composite_size){
     resize_string <- paste0(max_composite_size, "x", max_composite_size)
@@ -230,6 +491,32 @@ magickCell <- function(cdata, paths,
     return(list("img" = imgb,
                 "ucids" = cdataSample$ucid))
   else return(imgb)
+}
+
+#' magickCell alias
+#' 
+#' @inheritParams magickCell
+#' 
+cellMagick <- function(cdata, paths,
+                       max_composite_size = 1000, 
+                       cell_resize = NULL,
+                       boxSize = 80, 
+                       n = 100,
+                       equalize_images = F, 
+                       normalize_images = F,
+                       ch = "BF.out",
+                       sortVar = NULL,
+                       seed = NULL, 
+                       .debug=FALSE, 
+                       return_single_imgs = FALSE, 
+                       return_ucid_df = FALSE,
+                       annotation_params = list(color = "white", 
+                                                background = "black"),
+                       stack_vertical_first = FALSE
+                       ){
+  
+  magickCell(cdata, paths, max_composite_size, cell_resize, boxSize, n, equalize_images, normalize_images, 
+             ch, sortVar, seed, .debug, return_single_imgs, return_ucid_df, annotation_params, stack_vertical_first)
 }
 
 #' Funcion copada para mostrar fotos basada en magick
