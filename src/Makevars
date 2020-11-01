@@ -31,11 +31,10 @@ cellid: tiflibs
 
 # Note that each command is run independently, that's why all must have have a cd prepended.
 tiflibs:
-	mkdir -p tiff_build
-	cd tiff_build && cmake --clean-first ../tiff410/ && make all -j4 -B && cmake --target clean ../tiff410/
+	mkdir -p tiff410/r_build
+	cd tiff410/r_build && cmake --clean-first ../ && make all -j2 -B && cmake --target clean ../
 
 # The cleanup target must depend on the rest in order to be execured last in a parallel compilation
-# Cleanup the build directory but add a hidden file to it, so that R build process does not auto remove it for being empty
 rbuildcleanup: tiflibs cellid
-	rm -rf tiff_build/*
-	touch tiff_build/.r_nodelete
+	rm -rf tiff410/r_build/*
+	touch tiff410/r_build/.r_nodelete

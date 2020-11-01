@@ -4,5 +4,7 @@ cell_SOURCES = cell.c align_image.c contiguous.c date_and_time.c fft.c fft_stats
 # http://smalltalk.gnu.org/blog/bonzinip/all-you-should-really-know-about-autoconf-and-automake
 # On top of this, for each package you need, you add:
 
-AM_CFLAGS = $(libtiff_CFLAGS) $(libm_CFLAGS)
-LIBS += $(libtiff_LIBS) $(libm_LIBS)
+# AM_CFLAGS = $(libtiff_CFLAGS) $(libm_CFLAGS)
+# LIBS += $(libtiff_LIBS) $(libm_LIBS)
+AM_CFLAGS = -I../tiff410/r_build/libtiff $(libm_CFLAGS)
+LIBS += -L../tiff410/r_build/libtiff -ltiff -ljpeg -llzma -lz $(libm_LIBS)
