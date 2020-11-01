@@ -222,10 +222,11 @@ TIFFFdOpen(int fd, const char* name, const char* mode)
 TIFF*
 TIFFOpen(const char* name, const char* mode)
 {
-	printf("\n\n############### Executing TIFFOpen from rcell2 bundle...############### \n\n");
 	static const char module[] = "TIFFOpen";
 	int m, fd;
 	TIFF* tif;
+
+	printf("\n\n############### Executing TIFFOpen from rcell2 bundle...############### \n\n");
 
 	m = _TIFFgetMode(mode, module);
 	if (m == -1)
