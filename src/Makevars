@@ -29,7 +29,7 @@ all: cellid tiflibs rbuildcleanup
 # Define "cellid" target as requiring tiflibs, and building cellid using automake
 cellid: tiflibs
 	cd cellIDnoglib && make -j2
-	cp cellIDnoglib/cell ../inst/cell
+	cp cellIDnoglib/cell ../inst/rcellid
 	cd cellIDnoglib && make clean
 
 # Note that each command is run independently, that's why all must have have a cd prepended.
