@@ -8,6 +8,8 @@ A CellID wrapper is also on the works. Checkout the `cellid_master` branch.
 
 Try out the CellID binary at `inst/cell` (in the package directory of `rcell2`).
 
+Once you've installed the package, the binary's path can be obtained with: `system.file("cell", package = "rcell2", mustWork = T)`
+
 # Installation
 
 ## Dependencies

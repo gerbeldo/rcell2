@@ -23,7 +23,7 @@
 .PHONY: all tiflibs rbuildcleanup
 
 # Define "all" targets as requiring "cellid" and "rbuildcleanup"
-all: cellid rbuildcleanup
+all: cellid tiflibs rbuildcleanup
 
 # Define "cellid" target as requiring tiflibs, and building cellid using automake
 cellid: tiflibs

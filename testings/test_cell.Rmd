@@ -10,9 +10,11 @@ output: html_document
 ```{r build, eval=FALSE, message=FALSE, warning=TRUE}
 devtools::document()
 devtools::load_all(recompile = T, reset = T)
-devtools::install(reload = T, build = T,
-                  quiet = T,
+devtools::install(build = T,
+                  # reload = T,
+                  # quiet = T,
                   upgrade = "never", keep_source = T)
+# remove.packages("rcell2")
 ```
 
 
@@ -74,15 +76,18 @@ arguments
 
 ```{r}
 rcell2::cell2(arguments = arguments, 
-              cell.command = "~/Software/cellID-linux/cell",
-              # cell.command = system.file("cell", package = "rcell2", mustWork = T),
-              dry = T, no_cores = 1)
+              # cell.command = "~/Software/cellID-linux/cell",
+              cell.command = system.file("cell", package = "rcell2", mustWork = T),
+              dry = T, no_cores = 1) %>% .[1,1,drop=T]
+
+system("/home/nicomic/R/x86_64-pc-linux-gnu-library/4.0/rcell2/cell -b /home/nicomic/Projects/Programación/Rdevel/rcell2/data/image_samples/Position001/bf_rcell2.e1534f910500.txt -f /home/nicomic/Projects/Programación/Rdevel/rcell2/data/image_samples/Position001/fl_rcell2e1532ee93500.txt -o /home/nicomic/Projects/Programación/Rdevel/rcell2/data/image_samples/Position001/out -p /home/nicomic/Projects/Programación/Rdevel/rcell2/inst/parameters_test.txt -m")
 ```
 
 
 ```{r}
 rcell2::cell2(arguments = arguments, 
-              cell.command = "~/Software/cellID-linux/cell", # cell.command = system.file("cell", package = "rcell2", mustWork = T),
+              # cell.command = "~/Software/cellID-linux/cell",
+              cell.command = system.file("cell", package = "rcell2", mustWork = T),
               dry = F, no_cores = 1, label_cells_in_bf = T)
 ```
 
