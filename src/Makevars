@@ -1,3 +1,4 @@
+CC=gcc
 #CC=ccache clang -Qunused-arguments
 #CXX=ccache clang++ -Qunused-arguments
 #CCACHE_CPP2=yes
@@ -38,5 +39,4 @@ tiflibs:
 
 # The cleanup target must depend on the rest in order to be execured last in a parallel compilation
 rbuildcleanup: tiflibs cellid
-	rm -rf tiff410/r_build/*
 	touch tiff410/r_build/.r_nodelete
