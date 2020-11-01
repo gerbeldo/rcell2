@@ -3,6 +3,7 @@
 .Rproj.user
 rcell2.Rproj
 /src/*.o
+/src/*.so
 /data/image_samples/*.out.tif
 /testings/time_of_t0.txt
 src/rcell2.so
@@ -35,5 +36,17 @@ inst/cell
 inst/tiff410/
 
 *.o
+.DS_Store
+/inst/ijtiff/
+/inst/ijtiff_2.2.0_macOSbin.tgz
+/data/time_series_image_samples_2
+/data/time_seres_images_hu_moments/
+/data/time_series_image_samples_bf_as_fl/
+/src/cellIDnoglib/.deps/
+/data/image_samples/*
+/data/time_series_image_samples2/*
+/data/time_series_image_samples3*
+/data/time_series_image_samples4*
+/inst/tiff410/
 
 inst/rcellid
