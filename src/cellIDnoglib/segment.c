@@ -5077,7 +5077,7 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
 
   fprintf(fp,"f.local.bg \t a.local.bg \t a.local \t f.local2.bg \t");
   fprintf(fp,"a.local2.bg \t a.local2 \t ");
-  fprintf(fp,"a.surf \t con.vol \t sphere.vol ");
+  fprintf(fp,"a.surf \t sphere.vol ");
 
   fprintf(fp,"\n");
 
@@ -5230,9 +5230,8 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
 	    //  b->index,
 	    //  time_index[b->i_time],
 	    //  b->flag);
-      fprintf(fp,"%10.6e\t%10.6e\t%10.6e",
+      fprintf(fp,"%10.6e\t%10.6e\t",
 	      b->surface_area,
-	      b->vol_cone, //V1.3 se puede sacar, esta repetido
 	      b->vol_sphere);
       //fprintf(fp,"%10.6e\t%10.6e\t%10.6e\t%10.6e\t%10.6e\t%10.6e\t",
 	    //  b->vol_eff_1,
@@ -5245,7 +5244,7 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
       fprintf(fp,"\n");
 
       // mask_mod: Get the bounday and mask for this cell
-      if(out_mask==1) printf("mask_mod: getting b->boundary and b->interior\n");
+      //if(out_mask==1) printf("mask_mod: getting b->boundary and b->interior\n");
       fflush(stdout);
       if(out_mask==1) mask_mod_boundary=b->boundary;
       if(out_mask==1) mask_mod_interior=b->interior;
@@ -5263,8 +5262,9 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
       //   fprintf(fp2, "b\n");                                   // pixtype is "b" for "boundary"
       //   mask_mod_boundary=mask_mod_boundary->next;
       // }
+
       //Loop over all boundary points until reaching the end (full circuit)
-      if(out_mask==1) printf("mask_mod: iterating over mask_mod_boundary\n");
+      //if(out_mask==1) printf("mask_mod: iterating over mask_mod_boundary\n");
       fflush(stdout);
       if(out_mask==1){
         for(mask_mod_p1=mask_mod_boundary; mask_mod_p1!=NULL; mask_mod_p1=mask_mod_p1->next){
@@ -5315,10 +5315,10 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
         }
       }
       // mask_mod: Go to first boundary/interior pixels
-      if(out_mask==1) printf("mask_mod: iterating over mask_mod_interior->prev untill NULL\n");
+      //if(out_mask==1) printf("mask_mod: iterating over mask_mod_interior->prev untill NULL\n");
       fflush(stdout);
       if(out_mask==1) while(mask_mod_interior->prev!=NULL) mask_mod_interior=mask_mod_interior->prev;
-      if(out_mask==1) printf("mask_mod: iterating over mask_mod_interior\n");
+      //if(out_mask==1) printf("mask_mod: iterating over mask_mod_interior\n");
       fflush(stdout);
       if(out_mask==1){
         while(mask_mod_interior->next!=NULL){
@@ -5331,7 +5331,7 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
          mask_mod_interior=mask_mod_interior->next;
         }
       }
-      if(out_mask==1) printf("mask_mod: done with blob\n");
+      //if(out_mask==1) printf("mask_mod: done with blob\n");
       fflush(stdout);
       b=b->next;
     }
@@ -6385,7 +6385,7 @@ void add_points_to_data(struct point *p_start, int border){
 	}
 }
 /****************************************************/
-void add_cell_mask_data(struct point *p_in, int i_t, int fill_interior, int label_cells){
+void add_cell_mask_data(struct point *p_in, int i_t, int fill_interior, int label_cells, int interior_offset){
 	// mask_mod: this is a modification of the "add_boundary_points_to_data" function.
 	// Instead of simply adding the boundaries with a flat intensity value, this
 	// function adds both boundaries and (optionall) interior points, with
@@ -6401,16 +6401,16 @@ void add_cell_mask_data(struct point *p_in, int i_t, int fill_interior, int labe
   int a,b,a2,b2;
 
   int border;
-  struct point *p_start_boundary;
-	struct point *p_start_interior;
-  //Add boundary points for border list p_in.
+	int offset_threshold=10000; // mask_mod: used in integer division to calculate
+														 // offset between interior and boundary points.
+	// calculate offset between interior and boundary points.
+	interior_offset=((n_known/offset_threshold+1)*offset_threshold)*interior_offset;
+
+	//Add boundary points for border list p_in.
   //if p_in==NULL then do all n_known borders.
   //add found_border to d[] array in appropriate place.
 
 	if(label_cells==1) add_cell_number_to_the_data(i_t);
-
-  p_start_boundary=p_in;
-	p_start_interior=p_in;
 
   for(i=0;i<n_known;i++){ //Loop over all cells
     cellblob=cs[i]; 			// cs is defined above as "struct blob *cs[max_cells];"
@@ -6427,15 +6427,12 @@ void add_cell_mask_data(struct point *p_in, int i_t, int fill_interior, int labe
       //treated. Therefore, put p_start=boundary[i] to point to get first cell
       //if (p_in==NULL)p_start=boundary[i];         // mask_mod: replace p_start=boundary[i]; by p_start=cellblob->boundary;
       if (p_in==NULL){															// mask_mod: cellblob is cs[i] which in turn is one "blob", so we'll use its boundary element
-				// mask_mod: add boundary
-		  	p_start_boundary=cellblob->boundary;
-		  	add_points_to_data(p_start_boundary,border);
-
 				// mask_mod: fill interior
 		  	if(fill_interior==1){
-		  		p_start_interior=cellblob->interior;
-		  		add_points_to_data(p_start_interior,border);
+		  		add_points_to_data(cellblob->interior,border+interior_offset);
 		  	}
+				// mask_mod: add boundary
+				add_points_to_data(cellblob->boundary,border);
 		  }
     }
   }

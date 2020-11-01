@@ -137,6 +137,7 @@ int main(int argc, char *argv[]){
   int label_cells=0;    // mask_mod: label cells in BF.out optionally, default disabled
   int mask_output=0;    // mask_mod: cellID-adjusted mask output option in BF.out TIFF, default disabled
   int fill_interior=0;  // mask_mod: fill cells in BF.out. overrides label_cells. default disabled
+  int interior_offset=0; // mask_mod: offset interior and boundary pixel intensities
 
   FILE *fp_in;
   FILE *fp;
@@ -311,7 +312,7 @@ int main(int argc, char *argv[]){
   opterr = 0;  // https://stackoverflow.com/a/24331449/11524079
   optind = 1;  // https://stackoverflow.com/a/25937743/11524079
 
-  while((opt = getopt(argc, argv, "p:b:f:o:limt")) != -1) {
+  while((opt = getopt(argc, argv, "p:b:f:o:limtw")) != -1) {
     printf("Parsing getopt options\n");
     switch(opt) {
     case 'p':
@@ -359,6 +360,11 @@ int main(int argc, char *argv[]){
        out_mask=1; // enable
       break;
 
+    case 'w':
+       printf(" - Offset boundary and interior mask intensities.\n");
+       interior_offset = 1; // enable
+      break;
+
     case ':':
        printf(" - option needs a value\n");
       break;
@@ -369,6 +375,9 @@ int main(int argc, char *argv[]){
       break;
     }
   }
+
+  // mask_mod: Check and set mask_output type
+  if((fill_interior==1||label_cells==1)&&mask_output==0) mask_output=2;
 
   // Get all of the non-option arguments and print them
   //https://azrael.digipen.edu/~mmead/www/Courses/CS180/getopt.html
@@ -834,9 +843,14 @@ int main(int argc, char *argv[]){
   n_fluor=i;
 
   if (treat_brightfield_as_fluorescence==1){
+    int phase_exists; //mask_mod
 
     //if mapping list we have to duplicate the phase file list
     if(bf_fl_mapping==bf_fl_mapping_list){
+      /*
+      mask_mod: commented this section, as it incorrectly copied phase files.
+      See comment below
+
       //adding first bf as fl
       phase_files[n_phase]=(char *)malloc(max_strlen*sizeof(char));
       strcpy(phase_files[n_phase],phase_files[0]);
@@ -849,23 +863,97 @@ int main(int argc, char *argv[]){
       for(i=1;i<n_phase;i++){
           for(j=0;j<i;j++){
               if(strstr(phase_files[i],phase_files[j])==NULL){//new bf
-                  phase_files[n_phase+n_bf_as_fl]=(char *)malloc(max_strlen*sizeof(char));
-            strcpy(phase_files[n_phase+n_bf_as_fl],phase_files[i]);
-              fluor_files[n_fluor+n_bf_as_fl]=(char *)malloc(max_strlen*sizeof(char));
-              strcpy(fluor_files[n_fluor+n_bf_as_fl],phase_files[i]);
-                  n_bf_as_fl++;
+                phase_files[n_phase+n_bf_as_fl]=(char *)malloc(max_strlen*sizeof(char));
+                strcpy(phase_files[n_phase+n_bf_as_fl],phase_files[i]);
+                fluor_files[n_fluor+n_bf_as_fl]=(char *)malloc(max_strlen*sizeof(char));
+                strcpy(fluor_files[n_fluor+n_bf_as_fl],phase_files[i]);
+                n_bf_as_fl++;
               }
           }
       }
       n_phase+=n_bf_as_fl;
       n_fluor+=n_bf_as_fl;
+      */
+
+      // mask_mod: this corrects the addition of 'phase' images to the 'fluor'
+      // list. It first gets a list of unique phase (BF) images, and then
+      // inserts them as the last FL channel in fluor_files, and at the
+      // corresponding position in phase_files.
+
+      // Get unique phase image names from phase_files
+      char *phase_unique[n_phase];
+      n_bf_as_fl=0;
+      // Loop over all phase images in phase_files
+      for(i=0;i<n_phase;i++){
+        phase_exists=0;
+        for(j=0;j<n_bf_as_fl;j++){
+          // Check if phase image already exists in phase_unique
+          if(strstr(phase_files[i],phase_unique[j])!=NULL) phase_exists=1;
+        }
+        // If it does not, add it to phase_unique
+        if(phase_exists==0){
+          phase_unique[n_bf_as_fl]=(char *)malloc(max_strlen*sizeof(char));
+          strcpy(phase_unique[n_bf_as_fl],phase_files[i]);
+          n_bf_as_fl++;
+        }
+      }
+
+      // Add unique phase images into phase_files and fluor_files as last fluor
+      // channel
+      int insert_pos;
+      // Loop over unique phase images in phase_unique
+      for(i=0;i<n_bf_as_fl;i++){
+        // Find last occurence of phase image in phase_files
+        insert_pos=-1;
+        for(j=0;j<n_phase;j++) if(strstr(phase_unique[i],phase_files[j])!=NULL) insert_pos=j+1;
+
+        // This should always be true, but just in case...
+        if(insert_pos>-1){
+          // Allocate space at end of phase_files and fluor_files
+          phase_files[n_phase]=(char *)malloc(max_strlen*sizeof(char));
+          fluor_files[n_phase]=(char *)malloc(max_strlen*sizeof(char));
+          // Move all files behind insert_pos one index forward
+          for(j=n_phase;j>insert_pos;j--){
+            phase_files[j]=phase_files[j-1];
+            fluor_files[j]=fluor_files[j-1];
+          }
+          // Insert phase image at insert_pos in phase_files and fluor_files
+          phase_files[insert_pos]=phase_unique[i];
+          fluor_files[insert_pos]=phase_unique[i];
+          flag_bf[insert_pos]=1; //mark that is a brightfield
+          n_phase++;
+          n_fluor++;
+        }
+      }
+
     }else{
+      /*
+      mask_mod: replaced by next for loop. See comment below.
       //Copy brightfield image names into fluor list
       for(i=0;i<n_phase;i++){
         fluor_files[n_fluor]=(char *)malloc(max_strlen*sizeof(char));
         strcpy(fluor_files[n_fluor],phase_files[i]);
         flag_bf[n_fluor]=1; //mark that is a brightfield
         n_fluor++;
+      }
+      */
+
+      //mask_mod: this is an attempt to fix BF_as_FL when bf_fl_mapping==bf_fl_mapping_time.
+      // However, the image sorting by acquisition time doesn't seem to work
+      // correctly, so although this fixes the addition of 'phase' images
+      // to the 'fluor' list, there are more errors downstream.
+      //Copy brightfield image names into fluor list
+      for(i=0;i<n_phase;i++){
+        phase_exists=0;
+        for(j=0;j<n_fluor;j++){
+          if(strstr(phase_files[i],fluor_files[j])!=NULL) phase_exists=1;
+        }
+        if(phase_exists==0){
+          fluor_files[n_fluor]=(char *)malloc(max_strlen*sizeof(char));
+          strcpy(fluor_files[n_fluor],phase_files[i]);
+          flag_bf[n_fluor]=1; //mark that is a brightfield
+          n_fluor++;
+        }
       }
     }
   }
@@ -1657,10 +1745,6 @@ int main(int argc, char *argv[]){
       strcat(line,".out.tif");
       printf("Writing found cells and data to output file %s.\n",line);
 
-      // Andy: This 'if' statement can be included to avoid overwriting the
-      // original BF.out when BF_as_FL is activated. However, since this
-      // functionality has a more serious bug, I've commented out this part.
-      //if(flag[i]!=4){
       if(output_data_to_tif_file(line,
                                  fl,
                                  xmax,
@@ -1672,7 +1756,6 @@ int main(int argc, char *argv[]){
                                  mask_output)==0){
           printf("Couldn't output data to tif file %s.\n",line);
         }
-      //}  // Andy: closing bracket for the proposed if statement above
   }
 
   if (output_third_image==1){
@@ -1727,8 +1810,8 @@ int main(int argc, char *argv[]){
 
 
     // mask_mod:
-    if(mask_output==1){
-      add_cell_mask_data(NULL, i, fill_interior, label_cells);
+    if(mask_output>0){
+      add_cell_mask_data(NULL, i, fill_interior, label_cells, interior_offset);
     }
     else{
       add_cell_number_to_the_data(i);  // its argument is "int i_t"
