@@ -1,7 +1,8 @@
 # Information on how to use autotools
 # http://www.idryman.org/blog/2016/03/10/autoconf-tutorial-1/
-# http://smalltalk.gnu.org/blog/bonzinip/all-you-should-really-know-about-autoconf-and-automake
+# http://web.archive.org/web/20191127110840/http://smalltalk.gnu.org:80/blog/bonzinip/all-you-should-really-know-about-autoconf-and-automake
 # http://blog.fourthbit.com/2013/06/18/creating-an-open-source-program-in-c-with-autotools-part-1-of-2
+# https://autotools.io/autoconf/finding.html
 
 # Must init the autoconf setup
 # The first parameter is project name
@@ -39,3 +40,16 @@ AC_CONFIG_FILES([Makefile])
 
 # Generate the output
 AC_OUTPUT
+
+#################################################
+##### HELPFUL configure.ac STUFF - NOT RUN ######
+#################################################
+# adding the XXX library (e.g. with static name 'libXXX.a')
+# adding the lib to the files to link
+# http://www.bioinf.uni-freiburg.de/~mmann/HowTo/automake.html#extLibCheckLink
+# LIBS="-lXXX $LIBS"
+# Don't forget to distributed the variables among your final Makefiles:
+# distribute the changed variables among the Makefiles
+# AC_SUBST([LIBS])
+# AC_SUBST([AM_CXXFLAGS])
+# AC_SUBST([AM_LDFLAGS])
