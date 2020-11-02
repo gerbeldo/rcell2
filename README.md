@@ -10,6 +10,16 @@ Try out the CellID binary at `inst/cell` (in the package directory of `rcell2`).
 
 Once you've installed the package, the binary's path can be obtained with: `system.file("cell", package = "rcell2", mustWork = T)`
 
+### Compilation notes
+
+CellID is compiled with make and the GCC during package installation, linking to several dynamic libraries. These must be available: `-lzstd -llzma -ljpeg -lz -lm -lwebp`
+
+Previously we only linked to `-ltiff`, but it is now bundled and compiled internally with `cmake` before CellID.
+
+CellID is now linked to the bundled `libtiff` statically, and for this we needed the extra dynamic links to `zstd`, `liblzma`, `libjpeg`, `libz`, `libwebp`.
+
+The `libm` library is the standard math C library, required by CellID.
+
 # Installation
 
 ## Dependencies
