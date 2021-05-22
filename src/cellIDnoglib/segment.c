@@ -5230,7 +5230,7 @@ int output_cells_single_file(char *basename, char *append, int *time_index, int 
 	    //  b->index,
 	    //  time_index[b->i_time],
 	    //  b->flag);
-      fprintf(fp,"%10.6e\t%10.6e\t",
+      fprintf(fp,"%10.6e\t%10.6e",
 	      b->surface_area,
 	      b->vol_sphere);
       //fprintf(fp,"%10.6e\t%10.6e\t%10.6e\t%10.6e\t%10.6e\t%10.6e\t",
@@ -6334,7 +6334,7 @@ void add_boundary_points_to_data(struct point *p_in){
 }
 
 /****************************************************/
-void add_points_to_data(struct point *p_start, int border){
+void add_points_to_data(struct point *p_start, int cell_id){
 	// mask_mod: this is a helper function for "add_boundary_and_interior_points_to_data".
 	// It is called with a p_start pointer as argument, which points to the first
 	// point (pixel) in a linked list of either boundary or interior points.
@@ -6379,7 +6379,7 @@ void add_points_to_data(struct point *p_start, int border){
 				//Add to image array (b*xmax since it's a 1-dim array)
 				// mask_mod: d>=cellid_offset is the offset to trigger the tif.c write
 				// border with cell-identifying intensity
-				d[(b*xmax+a)]=border+cellid_offset;
+				d[(b*xmax+a)]=cell_id+cellid_offset;
 			}
 		}
 	}
@@ -6401,10 +6401,11 @@ void add_cell_mask_data(struct point *p_in, int i_t, int fill_interior, int labe
   int a,b,a2,b2;
 
   int border;
-	int offset_threshold=10000; // mask_mod: used in integer division to calculate
-														 // offset between interior and boundary points.
-	// calculate offset between interior and boundary points.
-	interior_offset=((n_known/offset_threshold+1)*offset_threshold)*interior_offset;
+	int interior_offset_threshold=2500; // mask_mod: used in integer division to calculate
+														 					// offset between interior and boundary points.
+														 					// If changed here, also change the interior_offset_threshold
+														 					// definition in read_tiff_masks in Rcell2!
+	interior_offset=(n_known/interior_offset_threshold+2)*interior_offset_threshold*interior_offset;
 
 	//Add boundary points for border list p_in.
   //if p_in==NULL then do all n_known borders.
