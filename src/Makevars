@@ -35,7 +35,7 @@ cellid: tiflibs
 # Note that each command is run independently, that's why all must have have a cd prepended.
 tiflibs:
 	mkdir -p tiff410/r_build
-	cd tiff410/r_build && cmake -DBUILD_SHARED_LIBS=OFF --clean-first ../ && make all -j2 -B && cmake --target clean ../
+	cd tiff410/r_build && cmake ../ -DBUILD_SHARED_LIBS=OFF && make all -j2 -B && cmake --build . --target clean
 	mkdir -p ../inst/tiff410/
 	cp -R tiff410/* ../inst/tiff410/
 
