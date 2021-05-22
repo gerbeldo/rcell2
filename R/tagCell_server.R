@@ -6,7 +6,7 @@
 #' @import shiny shinyjs formattable dplyr tidyr hexbin magick
 #' @importFrom graphics polygon
 tagCellServer <- function(input, output, session) {
-  
+  print("tagCellServer 1: start")
   d <- cdata %>% 
     dplyr::arrange(ucid, t.frame) %>% 
     {if(randomize_ucids) 
@@ -22,6 +22,7 @@ tagCellServer <- function(input, output, session) {
   p <- paths
   
   ucid.unique <- unique(d$ucid)
+  if(!all.unique(d$ucid_t.frame)) stop("tagCellServer error: the ucid-t.frame combination is not a primary key! check your data.")
   
   reactive_values <- shiny::reactiveValues(ith_cell = 1, # row index used to order dataframe rows
                                            ith_ucid = numeric(),
@@ -43,7 +44,7 @@ tagCellServer <- function(input, output, session) {
     # print("- Generating seelctInput fields...")
     # print(ith_cell)
     # print(selected_cell_tags[ith_cell])
-    
+    print("tagCellServer 2: renderUI update")
     lapply(1:length(names(cell_tags)), function(tag_group){
       # shiny::selectInput(inputId = names(cell_tags)[tag_group], 
       #                    label = names(cell_tags)[tag_group],
@@ -63,6 +64,7 @@ tagCellServer <- function(input, output, session) {
   ### INPUT OBSERVERS   ----------------
   # PLOT CLICK OBSERVER   ----------------
   observeEvent(input$plot_click, handlerExpr = {
+    print("tagCellServer 3: plot_click event observer")
     if(debug_messages) print("- Plot clicked")
     shinyjs::disable("next_cell")
     shinyjs::disable("prev_cell")
@@ -115,6 +117,7 @@ tagCellServer <- function(input, output, session) {
   shiny::observeEvent(
     eventExpr = input$next_cell,
     handlerExpr = {
+      print("tagCellServer 4: next_cell event observer")
       if(debug_messages) print("- Next cell requested, saving current tags...")
       shinyjs::disable("next_cell")
       shinyjs::disable("prev_cell")
@@ -155,6 +158,7 @@ tagCellServer <- function(input, output, session) {
   shiny::observeEvent(
     eventExpr = input$prev_cell,
     handlerExpr = {
+      print("tagCellServer 5: prev_cell event observer")
       if(debug_messages) print("- Previous cell requested...")
       shinyjs::disable("prev_cell")
       shinyjs::disable("next_cell")
@@ -196,6 +200,7 @@ tagCellServer <- function(input, output, session) {
   shiny::observeEvent(
     eventExpr = input$next_ucid,
     handlerExpr = {
+      print("tagCellServer 6: next_ucid event observer")
       if(debug_messages) print("- Next ucid requested, saving current tags...")
       shinyjs::disable("next_ucid")
       shinyjs::disable("prev_ucid")
@@ -241,6 +246,7 @@ tagCellServer <- function(input, output, session) {
   shiny::observeEvent(
     eventExpr = input$prev_ucid,
     handlerExpr = {
+      print("tagCellServer 7: prev_ucid event observer")
       if(debug_messages) print("- Previous ucid requested...")
       shinyjs::disable("prev_ucid")
       shinyjs::disable("next_ucid")
@@ -287,6 +293,7 @@ tagCellServer <- function(input, output, session) {
   ## Output reactive_values: 
   ## Isolated reactive_values: $selected_cell_tags
   shiny::observe({
+    print("tagCellServer 8: ith_cell reactive value observer")
     shinyjs::disable("prev_cell")
     shinyjs::disable("next_cell")
     shinyjs::disable("prev_ucid")
@@ -399,10 +406,12 @@ tagCellServer <- function(input, output, session) {
   ## Output reactive_values: 
   ## Isolated reactive_values: $selected_cell_tags
   output$saved_annotations <- shiny::renderTable({
+    print("tagCellServer 9: selected_cell_tags reactive table observer")
     if(debug_messages) print("- Rendering table 1")
     
     table_output <- reactive_values$selected_cell_tags %>% 
-      bind_rows(.id = "ucid_t.frame")  #%>% mutate(ucid = as.numeric(ucid_t.frame))
+      data.table::rbindlist(idcol = "ucid_t.frame", fill=TRUE)
+      # bind_rows(.id = "ucid_t.frame")  #%>% mutate(ucid = as.numeric(ucid_t.frame))
     
     if(nrow(table_output) > 0){
       table_output <- separate(table_output, ucid_t.frame, c("ucid", "t.frame")) %>% 
@@ -446,7 +455,12 @@ tagCellServer <- function(input, output, session) {
   
   # Reactive IMAGE 1: magickCell  ----------------
   output$pics <- shiny::renderImage({
+    print("tagCellServer 10: ith_cell reactive image observer")
     if(debug_messages) print("- Rendering image 1")
+    
+    # Make the image match the plot's width
+    output_plot_width <- session$clientData$output_plot_width
+    # session$clientData$output_plot_height
     
     if(nrow(d) > 0) {
       if(debug_messages) print("-- Selection not empty: magick!")
@@ -455,7 +469,8 @@ tagCellServer <- function(input, output, session) {
       magick.cell <-  magickCell(cdata = cdata.selected, 
                                  p,
                                  # ch=input$image_channel, 
-                                 cell_resize=cell_resize,
+                                 # cell_resize=cell_resize,
+                                 cell_resize=output_plot_width/length(tag_channels_select),
                                  ch=tag_channels_select, 
                                  n = n_max, 
                                  equalize_images = equalize_images,
@@ -464,6 +479,7 @@ tagCellServer <- function(input, output, session) {
                                  return_single_imgs = T, 
                                  return_ucid_df = T)
       tmpimage <- magick.cell$img
+      
       if(debug_messages) print(paste("--", magick.cell$ucids))
     } else {
       # Output white if selection is empty
@@ -479,28 +495,37 @@ tagCellServer <- function(input, output, session) {
   
   # Reactive PLOT 1: user plot  ----------------
   output$plot <- shiny::renderPlot({
+    print("tagCellServer 11: ith_cell reactive plot observer")
     if(debug_messages) print("- Rendering plot 1")
     
     ith_ucid <- as.character(d$ucid[reactive_values$ith_cell])
     ith_t.frame <- as.character(d$t.frame[reactive_values$ith_cell])
     
-    if(debug_messages) print(paste("--", ith_ucid))
+    if(debug_messages) print(paste("-- Current reactive_values$ith_cell:", reactive_values$ith_cell))
+    if(debug_messages) print(paste("-- Current ith_ucid:", ith_ucid))
     
-    ucid_data <- filter(cdata, ucid == ith_ucid)
+    ucid_data <- filter(cdata, ucid %in% ith_ucid)
     
     if(!is.null(tag_ggplot)){
       # Add data
       tag_ggplot_render <- tag_ggplot %+% ucid_data
       
       # Add current t.frame
+      if(debug_messages) print(paste("-- adding geom_vline to plot:"))
       tag_ggplot_render <- tag_ggplot_render + geom_vline(xintercept = as.numeric(ith_t.frame), 
                                                           color = "black")
       
       # Add annotations
+      if(debug_messages) print(paste("-- generating selected_cell_tags"))
+      # if(debug_messages) print(names(reactive_values$selected_cell_tags))
+      # if(debug_messages) print(data.table::rbindlist(reactive_values$selected_cell_tags, idcol = "ucid_t.frame"))
       table_output <- reactive_values$selected_cell_tags %>% 
-        bind_rows(.id = "ucid_t.frame")  #%>% mutate(ucid = as.numeric(ucid_t.frame))
+        data.table::rbindlist(idcol = "ucid_t.frame", fill=TRUE)
+        # bind_rows(.id = "ucid_t.frame")  #%>% mutate(ucid = as.numeric(ucid_t.frame))
       
+      # if(debug_messages) print(table_output)
       if(nrow(table_output) > 0){
+        if(debug_messages) print(paste("-- found annotations for plot, processing..."))
         table_output <- separate(table_output, ucid_t.frame, c("ucid", "t.frame")) %>% 
           mutate(ucid = as.integer(ucid), 
                  t.frame = as.integer(t.frame)) %>% 
@@ -510,7 +535,7 @@ tagCellServer <- function(input, output, session) {
         table_output_longer <- table_output %>%
           select(-ucid, -cellID, -pos) %>%
           mutate_at(
-            vars(one_of(names(cell_tags))),
+            dplyr::vars(tidyselect::any_of(names(cell_tags))),
             as.character
           ) %>%
           pivot_longer(-t.frame,
@@ -518,22 +543,16 @@ tagCellServer <- function(input, output, session) {
                        values_to = "valor",
                        values_drop_na = TRUE)
         
+        if(debug_messages) print(paste("-- adding geom_vline to plot:"))
         tag_ggplot_render <- tag_ggplot_render + geom_vline(data = table_output_longer,
                                                             aes(xintercept = t.frame,
                                                                 color = interaction(categoria, valor, sep = ": "),
                                                                 # linetype = valor,
-                                                                text = paste(categoria, valor, sep = ": ")),
+                                                                # text = paste(categoria, valor, sep = ": ")
+                                                                ),
                                                             size = 2, linetype = 2) +
           # ggplot2::guides(text = FALSE) +  # http://www.sthda.com/english/wiki/ggplot2-legend-easy-steps-to-change-the-position-and-the-appearance-of-a-graph-legend-in-r-software
           theme(legend.position = "bottom", legend.title = element_blank())
-        
-        # table_output_longer_ith_ucid_yvals <- left_join(table_output_longer_ith_ucid,
-        #                                        ucid_data[,c("t.frame", reactive_values$click_vars$yvar)]) 
-          
-        # print("-- Adding annotations to plot")
-        # tag_ggplot_render <- tag_ggplot_render + 
-        #   ggrepel::geom_label_repel(data = table_output_longer_ith_ucid_yvals,
-        #                             aes(label = paste(categoria, valor, collapse = ": ")))
       }
       
       # Render

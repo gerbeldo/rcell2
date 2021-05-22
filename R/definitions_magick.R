@@ -24,8 +24,11 @@ square_tile <- function(images, nRow = NULL, nCol = NULL){
     if(nRow * nCol > length(images)){
       row_images_index <- row_images_index[row_images_index <= length(images)]
     }
-    
-    magick::image_append(images[row_images_index])
+    print(row_images_index)
+    images[row_images_index] %>% 
+      magick::image_border(color = "white", geometry = "20x20") %>% 
+      magick::image_annotate(text = row_images_index, size = 20, gravity = "north") %>% 
+      magick::image_append()
   }
   
   image.tile <- magick::image_append(image.tile, stack = T)
@@ -96,12 +99,15 @@ cellStrip <- function(cdata,
                       id_column = "ucid", time_colum = "t.frame",
                       ...){
   
-  if(!all.unique(cdata[,id_column,drop=T]) & length(unique(cdata[,id_column,drop=T])) > 1)
-    stop(paste0("Error in cellGif: id column '", 
-                id_column, 
-                "' is not a primary key."))
+  multiple_ids <- length(unique(cdata[, id_column,drop=T])) > 1
+  ids_unique <- all.unique(cdata[, id_column, drop=T])
+  # If there is more than one unique ID, but they are not all different,
+  # then the column cannot be used to split 
+  if(multiple_ids & !ids_unique)
+    warning(paste0("Warning in cellGif: id column '", 
+                   id_column, "' is not a primary key."))
   
-  img <- arrange(cdata, !!as.symbol(time_colum)) %>% 
+  img <- dplyr::arrange(cdata, !!as.symbol(time_colum)) %>% 
     magickCell(paths,
                equalize_images = equalize_images, 
                normalize_images = normalize_images,
@@ -114,10 +120,82 @@ cellStrip <- function(cdata,
   magick::image_append(img, stack = !stack_time_horizontally)
 }
 
-updateList <- function(l1, l2){
+#' Wraps cellMagick to make strips, optionally cutting them.
+#' 
+#' `cdata` is split by `split_col` and then images are generated.
+#' 
+#' `images` are split with `cut`, useful wen strips are too long.
+#' 
+#' @inheritParams cellStrip
+#' @param n_ucids will select the first `n_ucids`
+#' @param cut_strips Use `cut` to split the image series.
+#' 
+cellStrips <- function(cdata,
+                       paths,
+                       n_ucids = NULL,
+                       cut_breaks = 1,
+                       split_col = "ucid",
+                       ch = c("BF.out", "YFP.out"),
+                       sortVar = "t.frame",
+                       ...){
+
+  if(is.null(n_ucids)) n_ucids <- length(unique(cdata[[split_col]]))
+    
+  # Una random
+  # split(cdata, cdata$ucid) %>% sample(1) %>% bind_rows() %>% 
+  # Una específicamente
+  images <- 
+    split(cdata, cdata[[split_col]]) %>% .[1:n_ucids] %>% 
+    lapply(function(ucid.cdata){
+      ucid_images <- 
+        magickCell(cdata = ucid.cdata, paths = paths, 
+                   sortVar = sortVar, ch = ch,
+                   seed = NULL,
+                   return_single_imgs = T,
+                   stack_vertical_first = T,
+                   ...)
+      
+      if(cut_breaks > 1)
+        ucid_images.list <- split(ucid_images, 
+                                   cut(1:length(ucid_images),
+                                       breaks = min(length(ucid_images),
+                                                    cut_breaks)
+                                   ))
+      else
+        ucid_images.list <- list(ucid_images)
+      
+      return(ucid_images.list)
+    }
+    )
+  
+  
+  images <- lapply(images, 
+                   function(images.split)
+                     lapply(images.split, magick::image_append)
+  )
+  
+  return(images)
+}
+
+#' Update a list's value using another list, by common names.
+#' 
+#' Names of `l2` present in `l1` will update values in `l1`.
+#' 
+#' Names of `l2` absent in `l1` will be ignored, unless `only.common.names=F`.
+#' 
+#' @param l1 List to be updated (with the "original" or "old" values).
+#' @param l2 List used for updating (with the "newer" values). Note: it needn't have all names
+#' @param ... Arguments passed on to magickCell.
+#' 
+updateList <- function(l1, l2, only.common.names=T){
   if(!is.list(l2) | !is.list(l1)) stop("Error: input must be two named lists.")
-  common.names <- names(l2)[names(l2) %in% names(l1)]
-  l1[common.names] <- l2[common.names]
+  
+  if(only.common.names){
+    common.names <- names(l2)[names(l2) %in% names(l1)]
+    l1[common.names] <- l2[common.names]
+  } else{
+    l1[names(l2)] <- l2[names(l2)]
+  }
   return(l1)
 }
 
@@ -289,7 +367,38 @@ cellSpreadPlot <- function(cdata, paths,
   return(plot_list)
 }
 
-#' Funcion copada para mostrar fotos basada en magick
+
+#' Geometria para agarrar un cuadradito de una imagen con magick por coordenada del centro
+#' 
+#' https://ropensci.org/blog/2017/08/15/magick-10/
+#' 
+#' https://livefreeordichotomize.com/2017/07/18/the-making-of-we-r-ladies/
+#' 
+#' @param xpos x pixel coordinate.
+#' @param ypos y pixel coordinate.
+#' @param boxSize side length of the final square
+#' @return magick::geometry_area configured for cellMagick
+#' 
+getCellGeom <- function(xpos, ypos, boxSize = 50){
+  geometry <- magick::geometry_area(width = boxSize,
+                                    height = boxSize,
+                                    x_off = xpos - base::ceiling(boxSize)/2,
+                                    y_off = ypos - base::ceiling(boxSize)/2)
+  return(geometry)
+}
+
+
+#' Funcion copada para mostrar fotos de Cell-ID basada en magick
+#' 
+#' @description 
+#' El uso más básico es \code{magickCell(cdata=cell.data$data, paths=cell.data$images)}.
+#' 
+#' Para mostrar algunas celulas en particular, solo hay que pasarle un \code{cdata} filtrado.
+#' 
+#' Ver la descripción de argumentos más abajo para aprender sobre las opciones.
+#' 
+#' Al fondo, en los detalles, hay una descripción de como debería ser el \code{paths} dataframe.
+#' 
 #' @details
 #' Paths dataframe structure. Output example from \code{glimpse(paths)}:
 #' 
@@ -306,9 +415,9 @@ cellSpreadPlot <- function(cdata, paths,
 #' @param cdata A Rcell data.frame (not the object).
 #' @param paths A paths dataframe with file path, t.frame, position and channel information of each picture.
 #' @param max_composite_size Maximum size of the final composite image (this resize is applied last) in pixels. 1000 by default.
-#' @param cell_resize Size of the individual cell images. "100x100" by default.
+#' @param cell_resize Resize string for the individual cell images (\code{NULL} translates to \code{boxSize}x\code{boxSize} by default).
 #' @param boxSize Size of the box containing the individual cell images. 50 by default.
-#' @param n maximum number of cells to display.
+#' @param n.cells maximum number of cells to display.
 #' @param equalize_images Use magick's function to "equalize" the image when TRUE (FALSE by default).
 #' @param normalize_images Use magick's function to "normalize" the image when TRUE (FALSE by default).
 #' @param ch Name of the CellID channel (BF, BF.out, RFP, etc.). "BF.out" by default.
@@ -329,7 +438,7 @@ magickCell <- function(cdata, paths,
                        max_composite_size = 1000, 
                        cell_resize = NULL,
                        boxSize = 80, 
-                       n = 100,
+                       n.cells = 25,
                        equalize_images = F, 
                        normalize_images = F,
                        ch = "BF.out",
@@ -340,7 +449,8 @@ magickCell <- function(cdata, paths,
                        return_ucid_df = FALSE,
                        annotation_params = list(color = "white", 
                                                 background = "black"),
-                       stack_vertical_first = FALSE
+                       stack_vertical_first = FALSE,
+                       return_raw = F
                        ){
   if(.debug) print("F8")
 
@@ -348,10 +458,19 @@ magickCell <- function(cdata, paths,
   if(is.null(cell_resize)) cell_resize <- boxSize
   cell_resize_string <- paste0(cell_resize, "x", cell_resize)
   
+  ch.avail <- unique(paths[,"channel",drop=T])
+  
   # Filter paths by pos and t.frame on cdata
-  if(!all(ch %in% paths[,"channel",drop=T])) stop(paste0("magickCell error: channels '",
-                                                         ch[!ch %in% paths[,"channel",drop=T]],
-                                                         "' are not in the paths dataframe."))
+  if(!all(ch %in% paths[,"channel",drop=T])){
+    stop(cat(
+      paste0("\nmagickCell error: channels '",
+             ch[!ch %in% ch.avail],
+             "' are not in the paths dataframe. ",
+             "\n\nPossible values are: '", 
+             paste(ch.avail, collapse = "', '"),
+             "'\n")
+    ))
+  }
   paths <- filter(paths, pos %in% cdata[,"pos", drop = T] & t.frame %in% cdata[,"t.frame", drop = T])
   
   # Add file path column if absent
@@ -369,21 +488,11 @@ magickCell <- function(cdata, paths,
                                     annotation_params)
   
 
-  # Intento con magick
-  # magickCell(cdataFiltered, sample_tiff$file, position = sample_tiff$pos, resize_string = "1000x1000")
-
-  getCellGeom <- function(xpos, ypos, boxSize = 50){
-    geometry <- magick::geometry_area(width = boxSize,
-                                      height = boxSize,
-                                      x_off = xpos - base::floor(boxSize/2),
-                                      y_off = ypos - base::floor(boxSize/2))
-    return(geometry)
-  }
-
-  # https://ropensci.org/blog/2017/08/15/magick-10/
-  # https://livefreeordichotomize.com/2017/07/18/the-making-of-we-r-ladies/
-
-  n <- min(c(n, nrow(cdata))) # Limit amount of pics to "n"
+  n.cells <- min(c(n.cells, nrow(cdata))) # Limit amount of pics to "n.cells"
+  
+  # To-do:
+  ## Using more than one channel with default options
+  ## does not produce the expected output: one square tile per channel.
 
   # TO-DO
   ## Read only parts of the TIFF matrix to speed up stuff: https://stackoverflow.com/questions/51920316/open-only-part-of-an-image-jpeg-tiff-etc-in-r
@@ -397,61 +506,80 @@ magickCell <- function(cdata, paths,
 
   # Sample the cdata dataframe
   cdataSample <- cdata[,unique(c("pos", "xpos", "ypos", "ucid", "t.frame", sortVar))]  # keep only the necessary columns
-  if(!is.null(seed)){
+  
+  # Set seed if specified, and sample "n.cells" from the dataframe
+  if(!is.null(seed)){ 
     set.seed(seed)
-    cdataSample <- cdata[sample(1:nrow(cdata), n, replace = F),] # sample n rows from cdata
+    # Sample
+    cdataSample <- cdata[sample(1:nrow(cdata), size = n.cells, replace = F),] # sample n.cells rows from cdata
+  } else {
+    # Else, just take the first "n.cells" rows
+    # This was possibly missing: not subsetting of cdata caused all images to be loaded,
+    # even though only a few "n.cells" had been requested. This seems to make magickCell much faster (not really tested).
+    cdataSample <- cdata[1:n.cells,]
   }
   # Sort cdata
   if(!is.null(sortVar)) cdataSample <- cdataSample[order(cdataSample[[sortVar]]),]  # sort the sample by "sortVar"
 
   imga <-
     foreach::foreach(i=1:nrow(cdataSample), .combine=c) %do% {
-
-    position <- cdataSample$pos[i]
-    ucid <- cdataSample$ucid[i]
-    t_frame <- cdataSample$t.frame[i]
-    picPath.df <- subset(paths, pos == position & channel %in% ch & t.frame == t_frame)
-    picPath <- picPath.df$file[order(match(picPath.df$channel, ch))]  # order paths according to ch argument
-    
-    stopifnot(length(position) == 1 &length(ucid) == 1 &length(t_frame) == 1) # Checks
-    stopifnot(length(picPath) == length(ch) & is.character(picPath)) # Checks
-
-    magick::image_read(picPath) %>%
-      {if (equalize_images) magick::image_normalize(.) else .} %>%
-      {if (normalize_images) magick::image_equalize(.) else .} %>%
-      magick::image_crop(getCellGeom(xpos = cdataSample$xpos[i],
-                                     ypos = cdataSample$ypos[i],
-                                     boxSize)) %>%
-      # Add square black box
-      {magick::image_composite(
-        magick::image_blank(boxSize, boxSize, "black"),
-        ., gravity = "Center"
-      )} %>% 
-      # Resize
-      magick::image_resize(cell_resize_string) %>%
-      # Annotate
-      {if(is.null(annotation_params)) . else 
-        magick::image_annotate(.,
-                               text = paste(paste0("Pos", as.character(position)),
-                                            paste0("t", t_frame),
-                                            ch),
-                               color = annotation_params[["color"]],
-                               boxcolor = annotation_params[["background"]],
-                               size = annotation_params[["size"]],
-                               font = "Comic sans",
-                               gravity = "SouthEast")} %>%
-      {if(is.null(annotation_params)) . else 
-        magick::image_annotate(.,
-                               text = as.character(ucid),
-                               color = annotation_params[["color"]],
-                               boxcolor = annotation_params[["background"]],
-                               size = annotation_params[["size"]],
-                               font = "Comic sans",
-                               gravity = "NorthWest")} %>%
-      # Add black border
-      magick::image_border("black","1x1") %>% 
-      # Tile horizontally
-      magick::image_append(stack = stack_vertical_first)
+  
+      position <- cdataSample$pos[i]
+      ucid <- cdataSample$ucid[i]
+      t_frame <- cdataSample$t.frame[i]
+      picPath.df <- subset(paths, pos == position & channel %in% ch & t.frame == t_frame)
+      picPath <- picPath.df$file[order(match(picPath.df$channel, ch))]  # order paths according to ch argument
+      
+      stopifnot(length(position) == 1 &length(ucid) == 1 &length(t_frame) == 1) # Checks
+      stopifnot(length(picPath) == length(ch) & is.character(picPath)) # Checks
+      
+      imgs.raw <- 
+        magick::image_read(picPath) %>%
+          magick::image_crop(getCellGeom(xpos = cdataSample$xpos[i],
+                                         ypos = cdataSample$ypos[i],
+                                         boxSize))
+      
+      if(return_raw){
+        # Return
+        imgs.raw
+      } else {
+        imgs.proceesed <- imgs.raw %>%
+          {if (equalize_images) magick::image_normalize(.) else .} %>%
+          {if (normalize_images) magick::image_equalize(.) else .} %>%
+          # Add square black box
+          {magick::image_composite(
+            magick::image_blank(boxSize, boxSize, "black"),
+            ., gravity = "Center"
+          )} %>% 
+          # Resize
+          magick::image_scale(cell_resize_string) %>%
+          # Annotate
+          {if(is.null(annotation_params)) . else 
+            magick::image_annotate(.,
+                                   text = paste(paste0("Pos", as.character(position)),
+                                                paste0("t", t_frame),
+                                                ch),
+                                   color = annotation_params[["color"]],
+                                   boxcolor = annotation_params[["background"]],
+                                   size = annotation_params[["size"]],
+                                   font = "Comic sans",
+                                   gravity = "SouthEast")} %>%
+          {if(is.null(annotation_params)) . else 
+            magick::image_annotate(.,
+                                   text = as.character(ucid),
+                                   color = annotation_params[["color"]],
+                                   boxcolor = annotation_params[["background"]],
+                                   size = annotation_params[["size"]],
+                                   font = "Comic sans",
+                                   gravity = "NorthWest")} %>%
+          # Add black border
+          magick::image_border("black","1x1") %>% 
+          # Tile horizontally
+          magick::image_append(stack = stack_vertical_first)
+        
+        # Return
+        imgs.proceesed
+      }
     }
 
   stopifnot(length(imga) == nrow(cdataSample)) # Checks
@@ -464,17 +592,21 @@ magickCell <- function(cdata, paths,
     }
   }
   
-  nRow <- ceiling(sqrt(n))
-  nCol <- ceiling(n/nRow)
+  nRow <- ceiling(sqrt(n.cells))
+  nCol <- ceiling(n.cells/nRow)
+  
+  max.width <- max(magick::image_info(imga)$width)
+  max.height <- max(magick::image_info(imga)$height)
 
   imgb <- foreach::foreach(i=0:(nRow-1), .combine=c) %do% {
 
     j = (1 + i*nCol):(i*nCol + nCol)
-    j = j[j <= n]
+    j = j[j <= n.cells]
 
     magick::image_apply(imga[j], function(i){
-      magick::image_blank(boxSize, boxSize, "black") %>%
-        magick::image_resize(cell_resize_string) %>%
+      magick::image_blank(width = max.width, height = max.height, color = "black") %>%
+        # Now unnecesary, image_blank size is based on maximum sizes in 'imga'.
+        # magick::image_scale(cell_resize_string) %>%
         magick::image_composite(i) }) %>%
       magick::image_append(stack = stack_vertical_first)
   }
@@ -483,7 +615,7 @@ magickCell <- function(cdata, paths,
 
   if(nRow*cell_resize >= max_composite_size || nCol*cell_resize >= max_composite_size){
     resize_string <- paste0(max_composite_size, "x", max_composite_size)
-    imgb <- magick::image_resize(imgb, resize_string)
+    imgb <- magick::image_scale(imgb, resize_string)
   }
 
   
@@ -497,26 +629,8 @@ magickCell <- function(cdata, paths,
 #' 
 #' @inheritParams magickCell
 #' 
-cellMagick <- function(cdata, paths,
-                       max_composite_size = 1000, 
-                       cell_resize = NULL,
-                       boxSize = 80, 
-                       n = 100,
-                       equalize_images = F, 
-                       normalize_images = F,
-                       ch = "BF.out",
-                       sortVar = NULL,
-                       seed = NULL, 
-                       .debug=FALSE, 
-                       return_single_imgs = FALSE, 
-                       return_ucid_df = FALSE,
-                       annotation_params = list(color = "white", 
-                                                background = "black"),
-                       stack_vertical_first = FALSE
-                       ){
-  
-  magickCell(cdata, paths, max_composite_size, cell_resize, boxSize, n, equalize_images, normalize_images, 
-             ch, sortVar, seed, .debug, return_single_imgs, return_ucid_df, annotation_params, stack_vertical_first)
+cellMagick <- function(...){
+  magickCell(...)
 }
 
 #' Funcion copada para mostrar fotos basada en magick

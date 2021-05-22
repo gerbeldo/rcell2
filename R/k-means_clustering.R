@@ -127,8 +127,6 @@ get_fit_vars <- function(x, f.channels, var_cats=NULL, custom_vars=NULL){
 #' @param var_cats optional character vector specifying whether pre-defined sets of morphological (\code{morpho}) and/or fluorescence (\code{fluor}) variables should be included for clustering. If no value is given and \code{custom_vars} is empty, this defaults to \code{morpho}.
 #' @param custom_vars optional character vector specifying custom variables to be included for clustering. These are added to any variable sets specified by \code{var_cats}.
 #' 
-#' @example 
-#' No example yet.
 #' @return Depending on the data type provided by \code{x}, either a cell.data object or a cell.data data.frame with appended columns \code{k} and \code{k.dist}, indicating the assigned cluster and Euclidean distance to the cluster centroid, respectively.
 #' @export
 #'
@@ -150,16 +148,17 @@ kmeans_clustering <- function(x, k=10, max_iter=100, resume=FALSE, label_col = '
   stopifnot("invalid max_iter value" = is.integer(max_iter) & max_iter>0)
   
   if(is.null(custom_vars) & is.null(var_cats)) var_cats <- "morpho"
-  x_has_qc <- "qc" %in% names(x)
   
   ## Get filtered data
   if(is.cell.data(x)){
     ## Do this if x is a cell.data object
-    if(x_has_qc) xdata <- x$data[x$data[,"qc"],] else xdata <- x$data
+    x_has_qc <- "qc" %in% names(x$data)
+    if(x_has_qc) xdata <- x$data[x$data$qc,] else xdata <- x$data
     f.channels <- x$channels$posfix
     }else{
     ## Do this if x is a data.frame
-    if(x_has_qc) xdata <- x[x[,"qc"],] else xdata <- x
+    x_has_qc <- "qc" %in% names(x)
+    if(x_has_qc) xdata <- x[x$qc,] else xdata <- x
     f.channels <- substr(unlist(regmatches(names(xdata), gregexpr(paste0("(f.tot.)+([a-z]{1}$)"), names(xdata)))), 7, 8)
     # f.channels <- sub(pattern = "f.tot.([a-z])", replacement = "\\1", 
     #                   x = grep(pattern = "f.tot.[a-z]",
@@ -211,7 +210,11 @@ kmeans_clustering <- function(x, k=10, max_iter=100, resume=FALSE, label_col = '
     na.idx <- is.na(tags)
     
     ## Calculate current cluster centroids
-    k.means <- t(sapply(1:length(k.labs.unique), function(i,x,n) colMeans(x[which(n==i),]), x=cdata[!na.idx,], n=k.labs.current[!na.idx]))
+    k.means <- t(sapply(1:length(k.labs.unique), 
+                        function(i,x,n) colMeans(x[which(n==i),]), 
+                        x=cdata[!na.idx,],
+                        n=k.labs.current[!na.idx])
+                 )
     
     ## Randomly reassign rows if pre-assigned clusters > k
     if(k<length(k.labs.unique)){
@@ -240,10 +243,9 @@ kmeans_clustering <- function(x, k=10, max_iter=100, resume=FALSE, label_col = '
       k.sample <- sample(dim(cdata)[1],k)
       k.means <- cdata[k.sample,]
     }
+    ## Set random initial cluster assignments
+    k.labs.current <- sample(1:k,dim(id)[1],replace=TRUE)
   }
-  ## Set random initial cluster assignments
-  ## This does not affect assignments, only prevents later error
-  k.labs.current <- sample(1:k,dim(id)[1],replace=TRUE)
   
   ## Loop over centroid calculation as long as labels continue getting updated
   ## Limit loop to max_iter iterations
